@@ -15,7 +15,7 @@
 #' argument an return a model. See details.
 #' @param start_column Name of the column in y with the start date of each training sample. Default is 'start_date'.
 #' @param end_column Name of the column in y with the end date of each training sample. Default is 'end_date'.
-#' @param label_colum Name of the column in y containing land use labels. Default is 'label'.
+#' @param label_column Name of the column in y containing land use labels. Default is 'label'.
 #' @param resampling_freq The time for sampling the time series if `resampling_fun` is given.
 #' If NULL, the patterns have the dates of the observations of the samples, in time order.
 #' @param ... Additional arguments passed to \link[twdtw]{twdtw}.
@@ -48,11 +48,11 @@
 #'
 #' # Read training samples
 #' samples_path <-
-# '   system.file("mato_grosso_brazil/samples.gpkg", package = "dtwSat")
+#'   system.file("mato_grosso_brazil/samples.gpkg", package = "dtwSat")
 #'
 #' samples <- st_read(samples_path, quiet = TRUE)
 #'
-#' # Get satellite image time sereis files
+#' # Get satellite image time series files
 #' tif_path <- system.file("mato_grosso_brazil", package = "dtwSat")
 #' tif_files <- dir(tif_path, pattern = "\\.tif$", full.names = TRUE)
 #'
@@ -108,7 +108,7 @@
 twdtw_knn1 <- function(x, y, resampling_fun = NULL, resampling_freq = NULL,
                        time_weight, cycle_length, time_scale,
                        start_column = 'start_date', end_column = 'end_date',
-                       label_colum = 'label', ...){
+                       label_column = 'label', ...){
 
   # Check if x is a stars object with a time dimension
   if (!inherits(x, "stars") || length(dim(x)) != 3 || !'time' %in% names(dim(x))) {
@@ -128,7 +128,7 @@ twdtw_knn1 <- function(x, y, resampling_fun = NULL, resampling_freq = NULL,
   if (is.null(time_scale)) stop("The 'time_scale' argument is missing for 'cycle_length' type character.")
 
   # Check for required columns in y
-  required_columns <- c(start_column, end_column, label_colum)
+  required_columns <- c(start_column, end_column, label_column)
   missing_columns <- setdiff(required_columns, names(y))
   if (length(missing_columns) > 0) {
     stop(paste("Missing required columns in y:", paste(missing_columns, collapse = ", ")))
@@ -136,7 +136,7 @@ twdtw_knn1 <- function(x, y, resampling_fun = NULL, resampling_freq = NULL,
 
   # adjust y column names
   st_geometry(y) <- 'geom'
-  y <- y[, c(start_column, end_column, label_colum, 'geom')]
+  y <- y[, c(start_column, end_column, label_column, 'geom')]
 
   # Convert columns to date-time
   y[, start_column] <- to_date_time(y[[start_column]])
@@ -151,7 +151,7 @@ twdtw_knn1 <- function(x, y, resampling_fun = NULL, resampling_freq = NULL,
 
   # Prepare time series samples from stars object
   ts_data <- st_extract(x, y)
-  ts_data$label <- y[[label_colum]]
+  ts_data$label <- y[[label_column]]
   ts_data <- prepare_time_series(as.data.frame(ts_data))
 
   # Keep only the observations within the time interval of each sample

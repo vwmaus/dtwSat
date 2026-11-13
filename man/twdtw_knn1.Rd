@@ -14,7 +14,7 @@ twdtw_knn1(
   time_scale,
   start_column = "start_date",
   end_column = "end_date",
-  label_colum = "label",
+  label_column = "label",
   ...
 )
 }
@@ -42,7 +42,7 @@ See details in \link[twdtw]{twdtw}.}
 
 \item{end_column}{Name of the column in y with the end date of each training sample. Default is 'end_date'.}
 
-\item{label_colum}{Name of the column in y containing land use labels. Default is 'label'.}
+\item{label_column}{Name of the column in y containing land use labels. Default is 'label'.}
 
 \item{...}{Additional arguments passed to \link[twdtw]{twdtw}.}
 }
@@ -79,10 +79,11 @@ See the examples section for further clarity.
 
 # Read training samples
 samples_path <-
+  system.file("mato_grosso_brazil/samples.gpkg", package = "dtwSat")
 
 samples <- st_read(samples_path, quiet = TRUE)
 
-# Get satellite image time sereis files
+# Get satellite image time series files
 tif_path <- system.file("mato_grosso_brazil", package = "dtwSat")
 tif_files <- dir(tif_path, pattern = "\\\\.tif$", full.names = TRUE)
 
