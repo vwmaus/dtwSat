@@ -1,128 +1,189 @@
-cat("Loading mgcv...\n")
-library(mgcv)
+# Train TWDTW 1-NN models with the example data and classify the example data cube.
 
-cat("Reading training samples...\n")
-samples <- st_read(system.file("mato_grosso_brazil/samples.gpkg", package = "dtwSat"))
+# Train a model with the twdtw arguments used in the examples of the package
+train <- function(x, y, ..., time_weight = c(steepness = 0.1, midpoint = 50)) {
+  twdtw_knn1(x = x,
+             y = y,
+             ...,
+             cycle_length = 'year',
+             time_scale = 'day',
+             time_weight = time_weight)
+}
 
-cat("Geting satellite image time series files...\n")
-tif_files <- dir(system.file("mato_grosso_brazil", package = "dtwSat"), pattern = "\\.tif$", full.names = TRUE)
+# Classify a data cube. The message that is suppressed comes from stars: it first tries
+# to predict with the three-dimensional data cube and then splits the time dimension.
+classify <- function(cube, model, ...) {
+  suppressMessages(predict(cube, model = model, ...))
+}
 
-cat("Geting acquisition dates from file names...\n")
-tif_names <- basename(tif_files)
-acquisition_date <- as.Date(regmatches(tif_names, regexpr("[0-9]{8}", tif_names)), format = "%Y%m%d")
+# Share of the samples for which the map has the label of the sample
+agreement <- function(map, samples) {
+  mean(as.character(st_extract(map, samples)$prediction) == samples$label)
+}
 
-cat("Reading data as stars object...\n")
-dc <- read_stars(tif_files,
-                 proxy = FALSE,
-                 along = list(time = acquisition_date),
-                 RasterIO = list(bands = 1:6))
+# A land use map has the spatial dimensions of the data cube and labels of the samples
+expect_land_use_map <- function(map, cube, samples) {
+  expect_s3_class(map, "stars")
+  expect_equal(dim(map), dim(cube)[c("x", "y")])
+  expect_s3_class(map$prediction, "factor")
+  expect_true(all(levels(map$prediction) %in% samples$label))
+}
 
-cat("Setting band names...\n")
-dc <- st_set_dimensions(dc, 3, c("EVI", "NDVI", "RED", "BLUE", "NIR", "MIR"))
+test_that("a model without resampling keeps the time series of each sample", {
+  dc <- example_cube()
+  samples <- example_samples()
 
-cat("Converting 4D into a 3D datacube...\n")
-dc <- split(dc, c("band"))
+  m <- train(dc, samples)
 
-cat("Creating twdtw_knn1 model using GAM...\n")
-system.time(
-  m <- twdtw_knn1(x = dc,
-                  y = samples,
-                  resampling_fun = function(data) mgcv::gam(y ~ s(x), data = data),
-                  cycle_length = 'year',
-                  time_scale = 'day',
-                  time_weight = c(steepness = 0.1, midpoint = 50))
-)
+  expect_s3_class(m, "twdtw_knn1")
+  expect_null(m$smooth_models)
+  expect_equal(m$data$label, samples$label)
 
-cat("Printing model...\n")
-print(m)
+  # Each time series has the 23 images of the data cube and all bands
+  expect_true(all(vapply(m$data$observations, nrow, integer(1)) == 23))
+  expect_true(all(vapply(m$data$observations, function(ts) {
+    identical(names(ts), c("time", names(dc)))
+  }, logical(1))))
 
-cat("Visualizing model patterns...\n")
-plot(m)
+  # The summary returns the model
+  out <- capture.output(printed <- print(m))
+  expect_identical(printed, m)
+  expect_match(out, "Model of class 'twdtw_knn1'", fixed = TRUE, all = FALSE)
 
-cat("Classifying satellite image time series...\n")
-system.time(lu <- predict(dc, model = m))
+  # The plot has one line for each sample and band
+  p <- plot(m)
+  expect_s3_class(p, "ggplot")
+  expect_s3_class(ggplot_build(p), "ggplot_built")
+  expect_equal(length(unique(p$data$id)), nrow(samples))
+  expect_setequal(p$data$band, names(dc))
 
-cat("Printing land use classification...\n")
-print(lu)
+  # The plot has only the bands that are given
+  p <- plot(m, bands = c('EVI', 'NDVI'))
+  expect_setequal(p$data$band, c('EVI', 'NDVI'))
+})
 
-cat("Visualizing land use classification...\n")
-ggplot() +
-  geom_stars(data = lu) +
-  theme_minimal()
+test_that("each sample of a model without resampling gets its own label", {
+  dc <- example_cube()
+  samples <- example_samples()
 
-cat("Testing model with resampling frequency of 60 and GAM...\n")
-m <- twdtw_knn1(x = dc,
-                y = samples,
-                resampling_fun = function(data) mgcv::gam(y ~ s(x), data = data),
-                resampling_freq = 60,
-                cycle_length = 'year',
-                time_scale = 'day',
-                time_weight = c(steepness = 0.1, midpoint = 50)
-                )
+  # Two samples of each label keep the test fast
+  two_of_each <- unlist(lapply(split(seq_len(nrow(samples)), samples$label), head, 2))
+  samples <- samples[two_of_each, ]
 
-cat("Visualizing resampled patterns...\n")
-plot(m)
+  m <- train(dc, samples)
+  lu <- classify(dc, m)
 
-cat("Classifying satellite image time series with resampled patterns...\n")
-system.time(
-  lu <- predict(dc,
-                model = m,
-                cycle_length = 'year',
-                time_scale = 'day',
-                time_weight = c(steepness = 0.1, midpoint = 50))
-)
+  expect_land_use_map(lu, dc, samples)
 
-cat("Printing land use classification of resampled patterns...\n")
-print(lu)
+  # The nearest neighbour of the pixel of a sample is the sample itself
+  expect_equal(as.character(st_extract(lu, samples)$prediction), samples$label)
+})
 
-cat("Visualizing land use classification of resampled patterns...\n")
-ggplot() +
-  geom_stars(data = lu) +
-  theme_minimal()
+test_that("a resampling function gives one temporal pattern for each label", {
+  skip_if_not_installed("mgcv")
 
-cat("Testing model without sample reduction...\n")
-m <- twdtw_knn1(x = dc,
-                y = samples,
-                cycle_length = 'year',
-                time_scale = 'day',
-                time_weight = c(steepness = 0.1, midpoint = 50),
-                smooth_fun = NULL)
+  dc <- example_cube()
+  samples <- example_samples()
 
-cat("Printing model without sample reduction...\n")
-print(m)
+  m <- train(dc, samples, resampling_fun = function(data) mgcv::gam(y ~ s(x), data = data))
 
-cat("Visualizing model patterns without sample reduction...\n")
-plot(m)
+  # One pattern for each label, from one fitted model for each band
+  expect_equal(sort(m$data$label), sort(unique(samples$label)))
+  expect_named(m$smooth_models, m$data$label)
+  for (band_models in m$smooth_models) {
+    expect_named(band_models, names(dc))
+  }
 
-cat("Visualizing model patterns without sample reduction for EVI and NDVI...\n")
-plot(m, bands = c('EVI', 'NDVI'))
+  # The patterns have the dates of the images, moved to start in 1970
+  pattern_dates <- shift_dates(st_get_dimension_values(dc, "time"))
+  for (pattern in m$data$observations) {
+    expect_named(pattern, c("time", names(dc)))
+    expect_equal(pattern$time, pattern_dates)
+    expect_false(anyNA(pattern))
+  }
 
-cat("Testing custom smooth function using the average for each observation date...\n")
-m <- twdtw_knn1(x = dc,
-                y = samples,
-                resampling_fun = function(data) lm(y ~ factor(x), data = data),
-                cycle_length = 'year',
-                time_scale = 'day',
-                time_weight = c(steepness = 0.1, midpoint = 50))
+  # The summary has the error of the fitted models of each band
+  out <- capture.output(print(m))
+  expect_match(out, "Root Mean Squared Error (RMSE) of smooth models", fixed = TRUE, all = FALSE)
+  expect_match(out, "^EVI +[0-9.]+", all = FALSE)
 
-cat("Printing model with custom smooth...\n")
-print(m)
+  # The plot has one line for each label and band
+  p <- plot(m)
+  expect_s3_class(ggplot_build(p), "ggplot_built")
+  expect_equal(length(unique(p$data$id)), nrow(m$data))
 
-cat("Visualizing model patterns with custom smooth...\n")
-plot(m)
+  # The map has the label of the sample for 97% of the samples
+  lu <- classify(dc, m)
+  expect_land_use_map(lu, dc, samples)
+  expect_gt(agreement(lu, samples), 0.9)
+})
 
-cat("Visualizing model patterns with custom smooth for EVI and NDVI...\n")
-plot(m, bands = c('EVI', 'NDVI'))
+test_that("resampling_freq sets the days between the observations of the patterns", {
+  skip_if_not_installed("mgcv")
 
-cat("Classifying satellite image time series with custom smooth...\n")
-system.time(lu <- predict(dc, model = m))
+  dc <- example_cube()
+  samples <- example_samples()
 
-cat("Printing land use classification with custom smooth...\n")
-print(lu)
+  m <- train(dc, samples,
+             resampling_fun = function(data) mgcv::gam(y ~ s(x), data = data),
+             resampling_freq = 60)
 
-cat("Visualizing land use classification with custom smooth...\n")
-ggplot() +
-  geom_stars(data = lu) +
-  theme_minimal()
+  # The images cover 349 days: six observations that are 60 days apart
+  for (pattern in m$data$observations) {
+    expect_equal(pattern$time, as.Date("1970-09-14") + 60 * 0:5)
+  }
 
-cat("Script completed.\n")
+  # Time series with 23 observations are compared to patterns with 6 observations.
+  # This crashed R with twdtw 1.0-1 (https://github.com/r-spatial/dtwSat/issues/63).
+  # The map has the label of the sample for 86% of the samples.
+  lu <- classify(dc, m)
+  expect_land_use_map(lu, dc, samples)
+  expect_gt(agreement(lu, samples), 0.75)
+})
+
+test_that("a custom resampling function gives the mean of the samples on each date", {
+  dc <- example_cube()
+  samples <- example_samples()
+
+  m <- train(dc, samples, resampling_fun = function(data) lm(y ~ factor(x), data = data))
+  m_samples <- train(dc, samples)
+
+  # All samples have the same dates, so a pattern is the mean of the samples of its label
+  for (i in seq_along(m$data$label)) {
+    ts_label <- m_samples$data$observations[m_samples$data$label == m$data$label[i]]
+    for (band in names(dc)) {
+      mean_band <- rowMeans(sapply(ts_label, function(ts) ts[[band]]))
+      expect_equal(m$data$observations[[i]][[band]], mean_band)
+    }
+  }
+
+  # The map has the label of the sample for 97% of the samples
+  lu <- classify(dc, m)
+  expect_land_use_map(lu, dc, samples)
+  expect_gt(agreement(lu, samples), 0.9)
+})
+
+test_that("twdtw arguments given to predict replace the arguments of the model", {
+  dc <- example_cube()
+  samples <- example_samples()
+  mean_fun <- function(data) lm(y ~ factor(x), data = data)
+  other_weight <- c(steepness = 0.5, midpoint = 20)
+
+  m <- train(dc, samples, resampling_fun = mean_fun)
+  m_other <- train(dc, samples, resampling_fun = mean_fun, time_weight = other_weight)
+
+  # The time weight is kept in the model and has no effect on the patterns
+  expect_equal(m_other$twdtw_args$time_weight, other_weight)
+  expect_equal(m_other$data, m$data)
+
+  # A part of the data cube is enough to compare the maps
+  dc_part <- dc[, 1:10, 1:10, ]
+  lu <- classify(dc_part, m)
+  lu_other <- classify(dc_part, m_other)
+
+  # The two time weights give different maps
+  expect_false(identical(lu, lu_other))
+
+  # The first model with the other time weight gives the map of the other model
+  expect_equal(classify(dc_part, m, time_weight = other_weight), lu_other)
+})
