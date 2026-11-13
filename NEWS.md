@@ -22,6 +22,8 @@
 
 * The land use map has a second attribute, `distance`, with the TWDTW distance of each pixel to the nearest temporal pattern. `predict()` for a `twdtw_knn1` model returns a data frame with the columns `prediction` and `distance`, and no longer a factor.
 
+* Missing values: `predict(model, newdata = cube)` classifies a data cube without `stars::predict()`. An observation with a missing value is not used, and the pixel is classified with its remaining observations. With `predict(cube, model = model)`, stars replaces missing values with zeros and sets the result of all pixels that had a missing value to `NA`.
+
 * The spatial dimensions of the data cube can have other names than `x` and `y`.
 
 * The argument `version` of twdtw is no longer used.
