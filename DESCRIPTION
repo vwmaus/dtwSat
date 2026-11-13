@@ -43,13 +43,13 @@ RoxygenNote: 7.2.3
 Depends:
     twdtw (>= 1.1-0),
     sf,
-    stars,
+    stars (>= 0.6-2),
     ggplot2
 Imports:
     stats,
     utils,
     methods,
-    tidyr,
+    tidyr (>= 1.3.0),
     proxy
 Suggests:
     mgcv,
