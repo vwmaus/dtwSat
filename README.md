@@ -1,12 +1,12 @@
 # dtwSat
 
 <!-- badges: start -->
-[![License](https://img.shields.io/badge/license-GPL%20%28%3E=%202%29-brightgreen.svg?style=flat)](https://www.gnu.org/licenses/gpl-3.0.html)
+[![License](https://img.shields.io/badge/license-GPL%20%28%3E=%203%29-brightgreen.svg?style=flat)](https://www.gnu.org/licenses/gpl-3.0.html)
 [![R-CMD-check](https://github.com/r-spatial/dtwSat/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/r-spatial/dtwSat/actions/workflows/R-CMD-check.yaml)
-[![Coverage Status](https://img.shields.io/codecov/c/github/vwmaus/dtwSat/main.svg)](https://app.codecov.io/gh/vwmaus/dtwSat)
+[![Coverage Status](https://img.shields.io/codecov/c/github/vwmaus/dtwSat/master.svg)](https://app.codecov.io/gh/vwmaus/dtwSat)
 [![CRAN](https://www.r-pkg.org/badges/version/dtwSat)](https://cran.r-project.org/package=dtwSat)
 [![Downloads](https://cranlogs.r-pkg.org/badges/dtwSat?color=brightgreen)](https://www.r-pkg.org/pkg/dtwSat)
-[![total](http://cranlogs.r-pkg.org/badges/grand-total/dtwSat)](http://www.r-pkg.org/pkg/dtwSat)
+[![total](https://cranlogs.r-pkg.org/badges/grand-total/dtwSat)](https://www.r-pkg.org/pkg/dtwSat)
 [![cran checks](https://badges.cranchecks.info/worst/dtwSat.svg)](https://cran.r-project.org/web/checks/check_results_dtwSat.html)
 [![status](https://tinyverse.netlify.com/badge/dtwSat)](https://CRAN.R-project.org/package=dtwSat)
 
@@ -24,16 +24,17 @@ visualizing temporal patterns, producing land use maps, and visualizing the resu
 
 ## Getting Started
 
-You can install dtwSat from CRAN using the following command:
-
-``` r
-install.packages("dtwSat")
-```
-
-Alternatively, you can install the development version from GitHub:
+You can install the development version of dtwSat from GitHub:
 
 ``` r
 devtools::install_github("r-spatial/dtwSat")
+```
+
+Version 1.0.0 was archived on CRAN in October 2023. Once version 1.0-1 is on CRAN,
+you can install it using the following command:
+
+``` r
+install.packages("dtwSat")
 ```
 
 After installation, you can read the vignette for a quick start guide:
