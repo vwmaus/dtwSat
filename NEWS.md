@@ -16,6 +16,16 @@
 
 * `print()` shows the root mean squared error of the models fitted with `resampling_fun`.
 
+## Changes in `predict()`:
+
+* Faster classification: The distances between all time series and all temporal patterns are calculated in a single call to `twdtw_knn()` of the twdtw package. For the example data this is more than 50 times faster, and the land use map is the same.
+
+* The land use map has a second attribute, `distance`, with the TWDTW distance of each pixel to the nearest temporal pattern. `predict()` for a `twdtw_knn1` model returns a data frame with the columns `prediction` and `distance`, and no longer a factor.
+
+* The spatial dimensions of the data cube can have other names than `x` and `y`.
+
+* The argument `version` of twdtw is no longer used.
+
 ## Other changes:
 
 * Requires twdtw version 1.1-0 or newer. It fixes a memory error that crashed R in `predict()` when the time series have more observations than the temporal patterns (#63).
@@ -23,6 +33,8 @@
 * Requires stars version 0.6-2 or newer and tidyr version 1.3.0 or newer.
 
 * `shift_dates()` is no longer exported.
+
+* The package proxy is no longer imported.
 
 * The examples and the vignette take the dates of the images from the file names. The full path of the files can have other digits, which were taken for a date.
 
