@@ -10,6 +10,9 @@
 #' two or more time series with different absolute dates but aiming to align them based on
 #' the day-of-year or another relative metric.
 #'
+#' A sequence that starts on day 366 of a leap year starts on the last day of the origin year
+#' if the origin year has 365 days.
+#'
 #' @param x A vector of date strings or Date objects representing the sequence to shift.
 #' @param origin A date string or Date object specifying the desired origin year for the shifted dates.
 #' Default is "1970-01-01".
@@ -32,8 +35,13 @@ shift_dates <- function(x, origin = "1970-01-01") {
   # Extract the day-of-year from the first date in x
   doy <- as.numeric(format(x[1], "%j"))
   
+  # Day 366 does not exist in an origin year with 365 days: use its last day
+  origin_year <- format(as.Date(origin), "%Y")
+  origin_days <- as.numeric(format(as.Date(paste0(origin_year, "-12-31")), "%j"))
+  doy <- min(doy, origin_days)
+  
   # Compute the new starting date in the origin year
-  new_start <- as.Date(paste0(format(as.Date(origin), "%Y"), sprintf("-%03d", doy)), format="%Y-%j")
+  new_start <- as.Date(paste0(origin_year, sprintf("-%03d", doy)), format="%Y-%j")
   
   # Determine the difference in days
   day_diff <- as.numeric(x[1] - new_start)
