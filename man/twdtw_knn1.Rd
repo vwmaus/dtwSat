@@ -29,7 +29,7 @@ improve computational time of predictions. The resampling function must receive 
 argument an return a model. See details.}
 
 \item{resampling_freq}{The time for sampling the time series if \code{resampling_fun} is given.
-If NULL, the function will infer the frequency of observations in \code{x}.}
+If NULL, the patterns have the dates of the observations of the samples, in time order.}
 
 \item{time_weight}{A numeric vector with length two (steepness and midpoint of logistic weight) or a function.
 See details in \link[twdtw]{twdtw}.}

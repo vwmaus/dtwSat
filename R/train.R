@@ -17,7 +17,7 @@
 #' @param end_column Name of the column in y with the end date of each training sample. Default is 'end_date'.
 #' @param label_colum Name of the column in y containing land use labels. Default is 'label'.
 #' @param resampling_freq The time for sampling the time series if `resampling_fun` is given.
-#' If NULL, the function will infer the frequency of observations in `x`.
+#' If NULL, the patterns have the dates of the observations of the samples, in time order.
 #' @param ... Additional arguments passed to \link[twdtw]{twdtw}.
 #'
 #' @details The label of a training sample is valid from its start date to its end date.
@@ -210,7 +210,8 @@ twdtw_knn1 <- function(x, y, resampling_fun = NULL, resampling_freq = NULL,
 
       # Determine time for resampling time sereis
       if (is.null(resampling_freq)) {
-        pred_time <- unique(y_time)
+        # Dates of the observations of all samples with this label, in time order
+        pred_time <- sort(unique(y_time))
       } else {
         pred_time <- seq(min(y_time), max(y_time), by = resampling_freq)
       }
