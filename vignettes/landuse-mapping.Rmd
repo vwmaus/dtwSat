@@ -35,6 +35,9 @@ library(dtwSat)
 samples <- st_read(system.file("mato_grosso_brazil/samples.gpkg", package = "dtwSat"), quiet = TRUE)
 ```
 
+Each sample is a point with a land-use `label` and the `start_date` and `end_date` of the period in which the label is valid.
+To train the model, `dtwSat` uses for each sample only the satellite images acquired within this period.
+
 ## Preparing the Satellite Image Time Series
 
 The `dtwSat` package supports satellite images read into R using the `stars` package.

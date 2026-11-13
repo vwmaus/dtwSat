@@ -13,14 +13,19 @@
 #' If not defined, it will keep all samples. Note that reducing the samples to patterns can significantly
 #' improve computational time of predictions. The resampling function must receive a single data frame as 
 #' argument an return a model. See details.
-#' @param start_column Name of the column in y that indicates the start date. Default is 'start_date'.
-#' @param end_column Name of the column in y that indicates the end date. Default is 'end_date'.
+#' @param start_column Name of the column in y with the start date of each training sample. Default is 'start_date'.
+#' @param end_column Name of the column in y with the end date of each training sample. Default is 'end_date'.
 #' @param label_colum Name of the column in y containing land use labels. Default is 'label'.
 #' @param resampling_freq The time for sampling the time series if `resampling_fun` is given.
 #' If NULL, the function will infer the frequency of observations in `x`.
 #' @param ... Additional arguments passed to \link[twdtw]{twdtw}.
 #'
-#' @details If \code{resampling_fun} not informed, the KNN-1 model will retain all training samples.
+#' @details The label of a training sample is valid from its start date to its end date.
+#' For each sample, the model uses only the observations of `x` within this time interval,
+#' including observations on the start and end dates. Samples without observations in their
+#' time interval are removed with a warning.
+#'
+#' If \code{resampling_fun} not informed, the KNN-1 model will retain all training samples.
 #'
 #' If a custom smoothing function is passed to `resampling_fun`, the function will be used to
 #' resample values of samples sharing the same label (land cover class). 
@@ -137,11 +142,36 @@ twdtw_knn1 <- function(x, y, resampling_fun = NULL, resampling_freq = NULL,
   y[, start_column] <- to_date_time(y[[start_column]])
   y[, end_column] <- to_date_time(y[[end_column]])
 
+  # Time interval in which the label of each sample is valid
+  start_date <- to_date(y[[start_column]])
+  end_date <- to_date(y[[end_column]])
+  if (anyNA(start_date) || anyNA(end_date)) {
+    stop(paste0("The columns '", start_column, "' and '", end_column, "' of y cannot have missing values"))
+  }
+
   # Prepare time series samples from stars object
   ts_data <- st_extract(x, y)
   ts_data$label <- y[[label_colum]]
   ts_data <- prepare_time_series(as.data.frame(ts_data))
+
+  # Keep only the observations within the time interval of each sample
+  ts_data$observations <- lapply(seq_len(nrow(ts_data)), function(i) {
+    ts <- ts_data$observations[[i]]
+    id <- ts_data$ts_id[i]
+    ts[ts$time >= start_date[id] & ts$time <= end_date[id], ]
+  })
   ts_data$ts_id <- NULL
+
+  # Remove samples without observations in their time interval
+  has_observations <- vapply(ts_data$observations, nrow, integer(1)) > 0
+  if (!any(has_observations)) {
+    stop("No sample in y has observations in x between its start and end dates")
+  }
+  if (!all(has_observations)) {
+    warning(paste0("Samples without observations in x between their start and end dates were removed: ",
+                   sum(!has_observations), " of ", length(has_observations)))
+    ts_data <- ts_data[has_observations, ]
+  }
 
   smooth_models <- NULL
   if(!is.null(resampling_fun)) {
@@ -336,5 +366,28 @@ get_time_series_freq <- function(x) {
   freq <- diff(time_values[mode_val_index:(mode_val_index+1)])
 
   return(freq)
+
+}
+
+
+#' Convert dates and date-times to calendar dates
+#'
+#' Date-times are converted in their own time zone, so that the result is the
+#' calendar date that is printed for the date-time. `as.Date()` would convert
+#' them in UTC, which can be the day before or the day after.
+#'
+#' @param x A vector of class Date or POSIXt.
+#'
+#' @return A vector of class Date.
+#'
+#' @noRd
+#' @keywords internal
+to_date <- function(x) {
+
+  if (inherits(x, "POSIXt")) {
+    return(as.Date(format(x, "%Y-%m-%d")))
+  }
+
+  return(as.Date(x))
 
 }

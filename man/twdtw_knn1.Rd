@@ -38,9 +38,9 @@ See details in \link[twdtw]{twdtw}.}
 
 \item{time_scale}{Specifies the time scale for the observations. Details in \link[twdtw]{twdtw}.}
 
-\item{start_column}{Name of the column in y that indicates the start date. Default is 'start_date'.}
+\item{start_column}{Name of the column in y with the start date of each training sample. Default is 'start_date'.}
 
-\item{end_column}{Name of the column in y that indicates the end date. Default is 'end_date'.}
+\item{end_column}{Name of the column in y with the end date of each training sample. Default is 'end_date'.}
 
 \item{label_colum}{Name of the column in y containing land use labels. Default is 'label'.}
 
@@ -53,6 +53,11 @@ A 'twdtw_knn1' model containing the trained model information and the data used.
 This function prepares a KNN-1 model with the Time Warp Dynamic Time Warping (TWDTW) algorithm.
 }
 \details{
+The label of a training sample is valid from its start date to its end date.
+For each sample, the model uses only the observations of \code{x} within this time interval,
+including observations on the start and end dates. Samples without observations in their
+time interval are removed with a warning.
+
 If \code{resampling_fun} not informed, the KNN-1 model will retain all training samples.
 
 If a custom smoothing function is passed to \code{resampling_fun}, the function will be used to
