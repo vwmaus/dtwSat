@@ -45,7 +45,10 @@ we start by extracting the date of acquisition from the MODIS file names [@Didan
 ```{r , echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
 tif_files <- dir(system.file("mato_grosso_brazil", package = "dtwSat"), pattern = "\\.tif$", full.names = TRUE)
 
-acquisition_date <- as.Date(regmatches(tif_files, regexpr("[0-9]{8}", tif_files)), format = "%Y%m%d")
+# use the file names only, the path to the files can contain digits too
+tif_names <- basename(tif_files)
+
+acquisition_date <- as.Date(regmatches(tif_names, regexpr("[0-9]{8}", tif_names)), format = "%Y%m%d")
 
 print(acquisition_date)
 ```

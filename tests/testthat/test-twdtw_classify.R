@@ -8,7 +8,8 @@ cat("Geting satellite image time series files...\n")
 tif_files <- dir(system.file("mato_grosso_brazil", package = "dtwSat"), pattern = "\\.tif$", full.names = TRUE)
 
 cat("Geting acquisition dates from file names...\n")
-acquisition_date <- as.Date(regmatches(tif_files, regexpr("[0-9]{8}", tif_files)), format = "%Y%m%d")
+tif_names <- basename(tif_files)
+acquisition_date <- as.Date(regmatches(tif_names, regexpr("[0-9]{8}", tif_names)), format = "%Y%m%d")
 
 cat("Reading data as stars object...\n")
 dc <- read_stars(tif_files,

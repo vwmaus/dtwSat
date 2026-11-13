@@ -35,8 +35,9 @@ samples <- st_read(samples_path, quiet = TRUE)
 tif_path <- system.file("mato_grosso_brazil", package = "dtwSat")
 tif_files <- dir(tif_path, pattern = "\\\\.tif$", full.names = TRUE)
 
-# Get acquisition dates
-acquisition_date <- regmatches(tif_files, regexpr("[0-9]{8}", tif_files))
+# Get acquisition dates from the file names
+tif_names <- basename(tif_files)
+acquisition_date <- regmatches(tif_names, regexpr("[0-9]{8}", tif_names))
 acquisition_date <- as.Date(acquisition_date, format = "\%Y\%m\%d")
 
 # Create a 3D datacube
