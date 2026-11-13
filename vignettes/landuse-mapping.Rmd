@@ -132,9 +132,25 @@ ggplot() +
   theme_minimal()
 ```
 
-Note that some pixels (in a 3x3 box) in the northeast part of the map have `NA` values due 
-to a missing value in the blue band recorded on 2011-11-17. This limitation will be addressed 
-in future versions of the dtwSat package.
+Note that some pixels (in a 3x3 box) in the northeast part of the map have `NA` values. 
+These pixels have a missing value in the blue band recorded on 2011-11-17. The call above uses 
+the `predict` method of the stars package, which replaces the missing values with zeros before 
+the prediction and then sets the result of every pixel that had a missing value to `NA`. 
+Therefore, a single missing value is enough for a pixel to have no land-use class.
+
+TWDTW does not need complete time series. To classify the pixels with missing values using 
+their remaining observations, pass the data-cube to the model:
+
+```{r , echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+lu_map <- predict(twdtw_model, newdata = dc)
+
+ggplot() +
+  geom_stars(data = lu_map) +
+  theme_minimal()
+```
+
+In this call the observation of 2011-11-17 is not used for the nine pixels, 
+and all pixels have a land-use class.
 
 Ultimately, we can write the map to a TIFF file we can use:
 

@@ -131,3 +131,42 @@ time_series_array <- function(x) {
   return(list(values = values, time = ts_time))
 
 }
+
+
+#' Prepare an Array of Time Series from a stars Data Cube
+#'
+#' This function reshapes a three-dimensional stars object (x, y, time) with bands as attributes
+#' into an array with the dimensions time series, time, and band, which is the input of
+#' \link[twdtw]{twdtw_knn}. Missing values remain missing.
+#'
+#' @param x A three-dimensional stars object with a 'time' dimension.
+#'
+#' @return A list with `values`, a numeric array with the dimensions time series, time, and band,
+#' and `time`, the values of the time dimension of `x`. Each pixel is a time series, in the order
+#' of the two spatial dimensions of `x`.
+#'
+#' @noRd
+#' @keywords internal
+data_cube_array <- function(x) {
+
+  # Read the data of a stars proxy object
+  x <- st_as_stars(x)
+
+  time_dim <- which(names(dim(x)) == 'time')
+  space_dims <- seq_along(dim(x))[-time_dim]
+
+  ts_time <- st_get_dimension_values(x, 'time')
+  ts_bands <- names(x)
+
+  values <- array(NA_real_,
+                  dim = c(prod(dim(x)[space_dims]), length(ts_time), length(ts_bands)),
+                  dimnames = list(NULL, NULL, ts_bands))
+
+  for (band in ts_bands) {
+    # Position the time dimension last, so that each row has the time series of a pixel
+    values[, , band] <- as.numeric(aperm(unclass(x[[band]]), c(space_dims, time_dim)))
+  }
+
+  return(list(values = values, time = ts_time))
+
+}
