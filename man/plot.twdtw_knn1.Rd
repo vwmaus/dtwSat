@@ -28,10 +28,11 @@ are plotted as distinct lines, differentiated by color.
 
 # Read training samples
 samples_path <-
+  system.file("mato_grosso_brazil/samples.gpkg", package = "dtwSat")
 
 samples <- st_read(samples_path, quiet = TRUE)
 
-# Get satellite image time sereis files
+# Get satellite image time series files
 tif_path <- system.file("mato_grosso_brazil", package = "dtwSat")
 tif_files <- dir(tif_path, pattern = "\\\\.tif$", full.names = TRUE)
 
