@@ -6,6 +6,10 @@
 
 * The argument `label_colum` is now called `label_column`.
 
+* Data cubes with a single band can be used to train a model and can be classified. Before, `twdtw_knn1()` stopped with "Unrecognized format in" followed by a date (vwmaus/twdtw#7).
+
+* Arguments that `twdtw_knn1()` does not know are an error. Before, they were ignored without a message, for example the arguments `formula` and `sampling_freq` of version 1.0.0.
+
 * Start and end dates of the samples: The model uses only the observations of the data cube between the start date and the end date of each training sample. In version 1.0.0 the two columns were required, but had no effect. Samples without observations in this time interval are removed with a warning.
 
 * The observations of the temporal patterns are in time order. They were out of order if the samples of a label did not have the same dates, for example samples from different years.
@@ -33,6 +37,8 @@
 * Requires twdtw version 1.1-0 or newer. It fixes a memory error that crashed R in `predict()` when the time series have more observations than the temporal patterns (#63).
 
 * Requires stars version 0.6-2 or newer and tidyr version 1.3.0 or newer.
+
+* New vignette "2. Accuracy and processing time of TWDTW, DTW, random forest, and SVM", with a spatial cross-validation and the processing time for the example data. It uses the suggested packages dtw, randomForest and e1071.
 
 * `shift_dates()` is no longer exported.
 
