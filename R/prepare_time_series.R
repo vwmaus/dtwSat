@@ -21,33 +21,7 @@ prepare_time_series <- function(x) {
   var_names <- var_names[!var_names %in% 'label']
 
   # Extract date and band information from the column names
-  date_band <- do.call(rbind, lapply(var_names, function(name) {
-
-    # Replace any hyphen with periods for consistent processing
-    name <- gsub("-", "\\.", name)
-
-    # Extract date and band info based on different name patterns
-    if (grepl("^.+\\.\\d{4}\\.\\d{2}\\.\\d{2}$", name)) {
-      date_str <- gsub("^.*?(\\d{4}\\.\\d{2}\\.\\d{2})$", "\\1", name)
-      band_str <- gsub("^(.+)\\.\\d{4}\\.\\d{2}\\.\\d{2}$", "\\1", name)
-    }
-    else if (grepl("^X\\d{4}\\.\\d{2}\\.\\d{2}\\..+$", name)) {
-      date_str <- gsub("^X(\\d{4}\\.\\d{2}\\.\\d{2})\\..+$", "\\1", name)
-      band_str <- gsub("^X\\d{4}\\.\\d{2}\\.\\d{2}\\.(.+)$", "\\1", name)
-    } 
-    else if (grepl("^\\d{4}\\.\\d{2}\\.\\d{2}\\..+$", name)) {
-      date_str <- gsub("^(\\d{4}\\.\\d{2}\\.\\d{2})\\..+$", "\\1", name)
-      band_str <- gsub("^\\d{4}\\.\\d{2}\\.\\d{2}\\.(.+)$", "\\1", name)
-    } 
-    else {
-      stop(paste("Unrecognized format in:", name))
-    }
-
-    # Convert the date string to Date format
-    date <- to_date_time(gsub("\\.", "-", date_str))
-
-    return(data.frame(time = date, band = band_str))
-  }))
+  date_band <- get_date_band(var_names)
 
   # Construct tiem sereis
   ns <- nrow(x)
@@ -63,5 +37,97 @@ prepare_time_series <- function(x) {
   result_df <- nest(result_df, .by = c('ts_id', 'label'), .key = 'observations')
 
   return(result_df)
+
+}
+
+
+#' Get the Date and the Band from the Names of the Columns of a Time Series Data Frame
+#'
+#' The column names of a data frame derived from a stars object are in formats like
+#' "band.YYYY.MM.DD", "XYYYY.MM.DD.band", or "YYYY.MM.DD.band".
+#'
+#' @param var_names A character vector with the column names.
+#' @param strict If TRUE, a name in another format is an error. If FALSE, it has
+#' a missing date and a missing band.
+#'
+#' @return A data frame with one row for each name and the columns `time` and `band`.
+#'
+#' @noRd
+#' @keywords internal
+get_date_band <- function(var_names, strict = TRUE) {
+
+  date_band <- do.call(rbind, lapply(var_names, function(name) {
+
+    # Replace any hyphen with periods for consistent processing
+    name <- gsub("-", "\\.", name)
+
+    # Extract date and band info based on different name patterns
+    if (grepl("^.+\\.\\d{4}\\.\\d{2}\\.\\d{2}$", name)) {
+      date_str <- gsub("^.*?(\\d{4}\\.\\d{2}\\.\\d{2})$", "\\1", name)
+      band_str <- gsub("^(.+)\\.\\d{4}\\.\\d{2}\\.\\d{2}$", "\\1", name)
+    }
+    else if (grepl("^X\\d{4}\\.\\d{2}\\.\\d{2}\\..+$", name)) {
+      date_str <- gsub("^X(\\d{4}\\.\\d{2}\\.\\d{2})\\..+$", "\\1", name)
+      band_str <- gsub("^X\\d{4}\\.\\d{2}\\.\\d{2}\\.(.+)$", "\\1", name)
+    }
+    else if (grepl("^\\d{4}\\.\\d{2}\\.\\d{2}\\..+$", name)) {
+      date_str <- gsub("^(\\d{4}\\.\\d{2}\\.\\d{2})\\..+$", "\\1", name)
+      band_str <- gsub("^\\d{4}\\.\\d{2}\\.\\d{2}\\.(.+)$", "\\1", name)
+    }
+    else if (strict) {
+      stop(paste("Unrecognized format in:", name))
+    }
+    else {
+      return(data.frame(time = as.Date(NA), band = NA_character_))
+    }
+
+    # Convert the date string to Date format
+    date <- to_date_time(gsub("\\.", "-", date_str))
+
+    return(data.frame(time = date, band = band_str))
+  }))
+
+  return(date_band)
+
+}
+
+
+#' Prepare an Array of Time Series from a Data Frame Derived from a stars Object
+#'
+#' This function reshapes a data frame in wide format into an array with the dimensions
+#' time series, time, and band, which is the input of \link[twdtw]{twdtw_knn}.
+#'
+#' @param x A data frame with one row for each time series and one column for each band and date.
+#' The column names adhere to the formats of [get_date_band()]. Other columns, such as the
+#' coordinates of the pixels, are not used.
+#'
+#' @return A list with `values`, a numeric array with the dimensions time series, time, and band,
+#' and `time`, the dates of the time dimension in the order of the columns of `x`.
+#'
+#' @noRd
+#' @keywords internal
+time_series_array <- function(x) {
+
+  x <- as.data.frame(x)
+
+  # Columns that are not observations do not have a band and a date in their name
+  date_band <- get_date_band(names(x), strict = FALSE)
+  is_observation <- !is.na(date_band$time) & !is.na(date_band$band)
+  if (!any(is_observation)) {
+    stop("newdata has no columns named with a band and a date, e.g. 'EVI.2011-09-14'")
+  }
+
+  ts_time <- unique(date_band$time[is_observation])
+  ts_bands <- unique(date_band$band[is_observation])
+
+  values <- array(NA_real_,
+                  dim = c(nrow(x), length(ts_time), length(ts_bands)),
+                  dimnames = list(NULL, NULL, ts_bands))
+
+  for (j in which(is_observation)) {
+    values[, match(date_band$time[j], ts_time), match(date_band$band[j], ts_bands)] <- as.numeric(x[[j]])
+  }
+
+  return(list(values = values, time = ts_time))
 
 }

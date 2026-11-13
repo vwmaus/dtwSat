@@ -122,7 +122,9 @@ lu_map <- predict(dc, model = twdtw_model)
 print(lu_map)
 ```
 
-The 'time' dimension was reduced to a single map. We can now visualize it using `ggplot`:
+The 'time' dimension was reduced to a single map with two attributes: `prediction` is the 
+land-use class of each pixel, and `distance` is the TWDTW distance to the nearest temporal pattern.
+We can now visualize the land-use classes using `ggplot`:
 
 ```{r , echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
 ggplot() +

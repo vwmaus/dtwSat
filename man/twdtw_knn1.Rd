@@ -44,7 +44,8 @@ See details in \link[twdtw]{twdtw}.}
 
 \item{label_column}{Name of the column in y containing land use labels. Default is 'label'.}
 
-\item{...}{Additional arguments passed to \link[twdtw]{twdtw}.}
+\item{...}{Additional arguments of the TWDTW distance: \code{origin} and \code{max_elapsed}.
+Details in \link[twdtw]{twdtw}.}
 }
 \value{
 A 'twdtw_knn1' model containing the trained model information and the data used.

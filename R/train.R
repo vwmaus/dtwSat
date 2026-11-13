@@ -18,7 +18,8 @@
 #' @param label_column Name of the column in y containing land use labels. Default is 'label'.
 #' @param resampling_freq The time for sampling the time series if `resampling_fun` is given.
 #' If NULL, the patterns have the dates of the observations of the samples, in time order.
-#' @param ... Additional arguments passed to \link[twdtw]{twdtw}.
+#' @param ... Additional arguments of the TWDTW distance: `origin` and `max_elapsed`.
+#' Details in \link[twdtw]{twdtw}.
 #'
 #' @details The label of a training sample is valid from its start date to its end date.
 #' For each sample, the model uses only the observations of `x` within this time interval,
@@ -245,8 +246,7 @@ twdtw_knn1 <- function(x, y, resampling_fun = NULL, resampling_freq = NULL,
                            cycle_length = cycle_length,
                            time_scale = time_scale,
                            origin = NULL,
-                           max_elapsed = Inf,
-                           version = "f90")
+                           max_elapsed = Inf)
   new_twdtw_args <- list(...)
   matching_twdtw_args <- intersect(names(model$twdtw_args), names(new_twdtw_args))
   model$twdtw_args[matching_twdtw_args] <- new_twdtw_args[matching_twdtw_args]

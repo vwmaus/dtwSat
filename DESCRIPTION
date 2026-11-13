@@ -49,8 +49,7 @@ Imports:
     stats,
     utils,
     methods,
-    tidyr (>= 1.3.0),
-    proxy
+    tidyr (>= 1.3.0)
 Suggests:
     mgcv,
     knitr,
