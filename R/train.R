@@ -111,7 +111,7 @@ twdtw_knn1 <- function(x, y, resampling_fun = NULL, resampling_freq = NULL,
                        label_colum = 'label', ...){
 
   # Check if x is a stars object with a time dimension
-  if (!inherits(x, "stars") || dim(x)['time'] < 1 || length(dim(x)) != 3) {
+  if (!inherits(x, "stars") || length(dim(x)) != 3 || !'time' %in% names(dim(x))) {
     stop("x must be a three-dimensional stars object with a 'time' dimension")
   }
 
