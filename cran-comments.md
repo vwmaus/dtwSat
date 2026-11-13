@@ -9,17 +9,35 @@
   rhub::check_for_cran(check_args = '--as-cran')
   rhub::check_for_cran(check_args = '--as-cran', valgrind = TRUE)
 
-* Local Ubuntu 22.04.1 LTS x86_64-pc-linux-gnu (64-bit), R 4.3.1 (2023-06-16)
-  devtools::check(args = '--as-cran')
+* Local Ubuntu 24.04.5 LTS x86_64-pc-linux-gnu (64-bit), R 4.6.2 (2026-10-29)
+  R CMD check --as-cran
   devtools::submit_cran()
   
 # REVIEWS
 
 ## v1.0-1
 
-* Improves flexibility for user defined smooting models
+This is a resubmission of an archived package. 'dtwSat' 1.0.0 was archived on
+2023-10-31 as check problems were not corrected in time.
 
-* 
+* The check problem was a segmentation fault in the tests
+  (<https://cran-archive.r-project.org/web/checks/2023/2023-10-31_check_results_dtwSat.html>).
+  It was caused by a memory error in the package 'twdtw', which is fixed in
+  'twdtw' 1.1-0. This version requires 'twdtw' (>= 1.1-0). We reproduced the
+  segmentation fault with 'twdtw' 1.0-1, and it does not occur with 'twdtw' 1.1-0.
+
+* Improves flexibility for user defined smoothing models. The arguments `formula`
+  and `sampling_freq` of `twdtw_knn1()` were replaced by `resampling_fun` and
+  `resampling_freq`, and 'mgcv' is now a suggested package.
+
+* Fixes the use of the start and end dates of the training samples and the order
+  of the observations of the temporal patterns. NEWS.md lists all changes.
+
+* The tests now check the results. The test file of version 1.0.0 ran the
+  examples without expectations.
+
+* R CMD check --as-cran on the local test environment: no ERRORs or WARNINGs.
+  There was 1 NOTE, because 'HTML Tidy' is not installed on the local system.
 
 ## v1.0.0
 

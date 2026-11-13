@@ -2,7 +2,7 @@ Package: dtwSat
 Type: Package
 Title: Time-Weighted Dynamic Time Warping for Satellite Image Time Series Analysis
 Version: 1.0-1
-Date: 2023-10-18
+Date: 2026-11-13
 Authors@R:
     c(person(given = "Victor",
              family = "Maus",
@@ -20,7 +20,7 @@ Authors@R:
       person(given = "Toni",
              family = "Giorgino",
              role = c("ctb"),
-             comment = c(ORCID = "0000-0002-6642-2543"))
+             comment = c(ORCID = "0000-0001-6449-0596"))
              )
 Description: Provides a robust approach to land use mapping using multi-dimensional 
     (multi-band) satellite image time series. By leveraging the Time-Weighted Dynamic 

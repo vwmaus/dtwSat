@@ -1,3 +1,31 @@
+# dtwSat v1.0-1
+
+## Changes in `twdtw_knn1()`:
+
+* New arguments for temporal patterns: The arguments `formula` and `sampling_freq` were replaced by `resampling_fun` and `resampling_freq`. `resampling_fun` is a function that receives a data frame with the time (`x`) and the values of a band (`y`) of the samples of a label and returns a model, for example `function(data) mgcv::gam(y ~ s(x), data = data)`. If `resampling_freq` is not given, the patterns have the dates of the observations of the samples. The package mgcv is now only suggested.
+
+* The argument `label_colum` is now called `label_column`.
+
+* Start and end dates of the samples: The model uses only the observations of the data cube between the start date and the end date of each training sample. In version 1.0.0 the two columns were required, but had no effect. Samples without observations in this time interval are removed with a warning.
+
+* The observations of the temporal patterns are in time order. They were out of order if the samples of a label did not have the same dates, for example samples from different years.
+
+* Samples with the first observation on 31 December of a leap year can be used with a resampling function. Their dates became missing values.
+
+* A data cube without a dimension called `time` gives a clear error message.
+
+* `print()` shows the root mean squared error of the models fitted with `resampling_fun`.
+
+## Other changes:
+
+* Requires twdtw version 1.1-0 or newer. It fixes a memory error that crashed R in `predict()` when the time series have more observations than the temporal patterns (#63).
+
+* Requires stars version 0.6-2 or newer and tidyr version 1.3.0 or newer.
+
+* `shift_dates()` is no longer exported.
+
+* The examples and the vignette take the dates of the images from the file names. The full path of the files can have other digits, which were taken for a date.
+
 # dtwSat v1.0.0
 
 ## Major Updates:
