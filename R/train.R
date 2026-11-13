@@ -19,7 +19,7 @@
 #' @param resampling_freq The time for sampling the time series if `resampling_fun` is given.
 #' If NULL, the patterns have the dates of the observations of the samples, in time order.
 #' @param ... Additional arguments of the TWDTW distance: `origin` and `max_elapsed`.
-#' Details in \link[twdtw]{twdtw}.
+#' Details in \link[twdtw]{twdtw}. Any other argument is an error.
 #'
 #' @details The label of a training sample is valid from its start date to its end date.
 #' For each sample, the model uses only the observations of `x` within this time interval,
@@ -116,6 +116,16 @@ twdtw_knn1 <- function(x, y, resampling_fun = NULL, resampling_freq = NULL,
     stop("x must be a three-dimensional stars object with a 'time' dimension")
   }
 
+  # Arguments that this function does not know are not ignored
+  check_twdtw_args(list(...))
+
+  # A data cube with a single band has only the date in the names of its time series,
+  # so the name of the band is taken from the data cube
+  single_band <- NULL
+  if (length(x) == 1) {
+    single_band <- normalize_band_names(names(x))
+  }
+
   x <- split(x, c("time"))
 
   # Check if y is an sf object with point geometry
@@ -153,7 +163,7 @@ twdtw_knn1 <- function(x, y, resampling_fun = NULL, resampling_freq = NULL,
   # Prepare time series samples from stars object
   ts_data <- st_extract(x, y)
   ts_data$label <- y[[label_column]]
-  ts_data <- prepare_time_series(as.data.frame(ts_data))
+  ts_data <- prepare_time_series(as.data.frame(ts_data), single_band = single_band)
 
   # Keep only the observations within the time interval of each sample
   ts_data$observations <- lapply(seq_len(nrow(ts_data)), function(i) {
@@ -390,5 +400,46 @@ to_date <- function(x) {
   }
 
   return(as.Date(x))
+
+}
+
+
+#' Check the additional arguments of twdtw_knn1
+#'
+#' The additional arguments of `twdtw_knn1()` are the arguments `origin` and `max_elapsed`
+#' of the TWDTW distance. Any other argument is an error, so that it is not ignored
+#' without a message, for example an argument of a previous version of the package.
+#'
+#' @param args A list with the additional arguments.
+#'
+#' @return Invisible NULL. The function stops if an argument is not known.
+#'
+#' @noRd
+#' @keywords internal
+check_twdtw_args <- function(args) {
+
+  arg_names <- names(args)
+  if (is.null(arg_names)) {
+    arg_names <- rep("", length(args))
+  }
+
+  unknown <- setdiff(arg_names, c('origin', 'max_elapsed'))
+  if (length(unknown) == 0) {
+    return(invisible(NULL))
+  }
+
+  msg <- paste0("Unknown arguments in twdtw_knn1: ",
+                paste(ifelse(unknown == "", "an argument without name", paste0("'", unknown, "'")), collapse = ", "),
+                ". The additional arguments are 'origin' and 'max_elapsed'.")
+
+  # Arguments of previous versions
+  if (any(c('formula', 'sampling_freq') %in% unknown)) {
+    msg <- paste(msg, "'formula' and 'sampling_freq' were replaced by 'resampling_fun' and 'resampling_freq'.")
+  }
+  if ('version' %in% unknown) {
+    msg <- paste(msg, "'version' is no longer used.")
+  }
+
+  stop(msg)
 
 }

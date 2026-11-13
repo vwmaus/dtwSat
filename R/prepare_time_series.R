@@ -5,13 +5,15 @@
 #'
 #' @param x A data frame derived from a stars object containing time series data in wide format.
 #' The column names should adhere to one of the following formats: "band.YYYY.MM.DD", "XYYYY.MM.DD.band", or "YYYY.MM.DD.band".
+#' @param single_band The name of the band of a stars object with a single band. In this case
+#' the column names have only the date, "YYYY.MM.DD" or "XYYYY.MM.DD".
 #'
 #' @return A nested tibble in wide format. Each row of the tibble corresponds to a unique 'ts_id' that maintains the order from the original stars object.
 #' The nested structure contains observations (time series) for each 'ts_id', including the 'time' of each observation, and individual bands are presented as separate columns.
 #'
 #' @noRd
 #' @keywords internal
-prepare_time_series <- function(x) {
+prepare_time_series <- function(x, single_band = NULL) {
 
   # Remove the 'geom' column if it exists
   x$geom <- NULL
@@ -22,6 +24,14 @@ prepare_time_series <- function(x) {
 
   # Extract date and band information from the column names
   date_band <- get_date_band(var_names)
+
+  # Columns with only the date in their name have the values of the single band
+  if (anyNA(date_band$band)) {
+    if (is.null(single_band)) {
+      stop(paste("Unrecognized format in:", var_names[is.na(date_band$band)][1]))
+    }
+    date_band$band[is.na(date_band$band)] <- single_band
+  }
 
   # Construct tiem sereis
   ns <- nrow(x)
@@ -44,13 +54,15 @@ prepare_time_series <- function(x) {
 #' Get the Date and the Band from the Names of the Columns of a Time Series Data Frame
 #'
 #' The column names of a data frame derived from a stars object are in formats like
-#' "band.YYYY.MM.DD", "XYYYY.MM.DD.band", or "YYYY.MM.DD.band".
+#' "band.YYYY.MM.DD", "XYYYY.MM.DD.band", or "YYYY.MM.DD.band". If the stars object has
+#' a single band, the names have only the date, "YYYY.MM.DD" or "XYYYY.MM.DD".
 #'
 #' @param var_names A character vector with the column names.
 #' @param strict If TRUE, a name in another format is an error. If FALSE, it has
 #' a missing date and a missing band.
 #'
 #' @return A data frame with one row for each name and the columns `time` and `band`.
+#' The band is missing for names that have only the date.
 #'
 #' @noRd
 #' @keywords internal
@@ -73,6 +85,11 @@ get_date_band <- function(var_names, strict = TRUE) {
     else if (grepl("^\\d{4}\\.\\d{2}\\.\\d{2}\\..+$", name)) {
       date_str <- gsub("^(\\d{4}\\.\\d{2}\\.\\d{2})\\..+$", "\\1", name)
       band_str <- gsub("^\\d{4}\\.\\d{2}\\.\\d{2}\\.(.+)$", "\\1", name)
+    }
+    else if (grepl("^X?\\d{4}\\.\\d{2}\\.\\d{2}$", name)) {
+      # Only the date: the name of the band is not part of the column name
+      date_str <- gsub("^X?(\\d{4}\\.\\d{2}\\.\\d{2})$", "\\1", name)
+      band_str <- NA_character_
     }
     else if (strict) {
       stop(paste("Unrecognized format in:", name))
@@ -100,18 +117,26 @@ get_date_band <- function(var_names, strict = TRUE) {
 #' @param x A data frame with one row for each time series and one column for each band and date.
 #' The column names adhere to the formats of [get_date_band()]. Other columns, such as the
 #' coordinates of the pixels, are not used.
+#' @param single_band The name of the band if the time series have a single band and the
+#' column names have only the date. If NULL, columns with only the date are not used.
 #'
 #' @return A list with `values`, a numeric array with the dimensions time series, time, and band,
 #' and `time`, the dates of the time dimension in the order of the columns of `x`.
 #'
 #' @noRd
 #' @keywords internal
-time_series_array <- function(x) {
+time_series_array <- function(x, single_band = NULL) {
 
   x <- as.data.frame(x)
 
   # Columns that are not observations do not have a band and a date in their name
   date_band <- get_date_band(names(x), strict = FALSE)
+
+  # Columns with only the date in their name have the values of the single band
+  if (!is.null(single_band)) {
+    date_band$band[!is.na(date_band$time) & is.na(date_band$band)] <- single_band
+  }
+
   is_observation <- !is.na(date_band$time) & !is.na(date_band$band)
   if (!any(is_observation)) {
     stop("newdata has no columns named with a band and a date, e.g. 'EVI.2011-09-14'")
@@ -156,17 +181,36 @@ data_cube_array <- function(x) {
   space_dims <- seq_along(dim(x))[-time_dim]
 
   ts_time <- st_get_dimension_values(x, 'time')
-  ts_bands <- names(x)
+  ts_bands <- normalize_band_names(names(x))
 
   values <- array(NA_real_,
                   dim = c(prod(dim(x)[space_dims]), length(ts_time), length(ts_bands)),
                   dimnames = list(NULL, NULL, ts_bands))
 
-  for (band in ts_bands) {
+  for (i in seq_along(ts_bands)) {
     # Position the time dimension last, so that each row has the time series of a pixel
-    values[, , band] <- as.numeric(aperm(unclass(x[[band]]), c(space_dims, time_dim)))
+    values[, , i] <- as.numeric(aperm(unclass(x[[i]]), c(space_dims, time_dim)))
   }
 
   return(list(values = values, time = ts_time))
+
+}
+
+
+#' Band Names as Derived from the Column Names of the Time Series
+#'
+#' The band names of a model come from the column names of the time series of the samples,
+#' in which hyphens are replaced with periods, see [get_date_band()]. This function makes
+#' the same replacement in band names that are taken from the attributes of a stars object.
+#'
+#' @param x A character vector with band names.
+#'
+#' @return A character vector with the band names.
+#'
+#' @noRd
+#' @keywords internal
+normalize_band_names <- function(x) {
+
+  return(gsub("-", ".", x, fixed = TRUE))
 
 }

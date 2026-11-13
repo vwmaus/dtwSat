@@ -51,6 +51,10 @@ predict.twdtw_knn1 <- function(object, newdata, ...){
   matching_twdtw_args <- intersect(names(new_twdtw_args), names(object$twdtw_args))
   object$twdtw_args[matching_twdtw_args] <- new_twdtw_args[matching_twdtw_args]
 
+  # Temporal patterns and their bands
+  patterns <- lapply(object$data$observations, as.data.frame)
+  pattern_bands <- setdiff(names(patterns[[1]]), 'time')
+
   # Convert newdata to an array with the dimensions time series, time, and band.
   # In a data cube the missing values remain missing
   is_data_cube <- inherits(newdata, "stars")
@@ -60,12 +64,15 @@ predict.twdtw_knn1 <- function(object, newdata, ...){
     }
     newdata_ts <- data_cube_array(newdata)
   } else {
-    newdata_ts <- time_series_array(newdata)
+    # The columns of time series with a single band have only the date in their name
+    single_band <- NULL
+    if (length(pattern_bands) == 1) {
+      single_band <- pattern_bands
+    }
+    newdata_ts <- time_series_array(newdata, single_band = single_band)
   }
 
   # The time series must have the bands of the temporal patterns
-  patterns <- lapply(object$data$observations, as.data.frame)
-  pattern_bands <- setdiff(names(patterns[[1]]), 'time')
   newdata_bands <- dimnames(newdata_ts$values)[[3]]
   if (!setequal(newdata_bands, pattern_bands)) {
     stop(paste0("The bands of newdata (", paste(newdata_bands, collapse = ", "),
