@@ -20,8 +20,9 @@
 #' @param start_column Name of the column in y with the start date of each training sample. Default is 'start_date'.
 #' @param end_column Name of the column in y with the end date of each training sample. Default is 'end_date'.
 #' @param label_column Name of the column in y containing land use labels. Default is 'label'.
-#' @param ... Additional arguments of the TWDTW distance: `origin` and `max_elapsed`.
-#' Details in \link[twdtw]{twdtw}. Any other argument is an error.
+#' @param ... Additional arguments of \link[twdtw]{twdtw_knn}: `origin` and `max_elapsed` of the
+#' TWDTW distance, see \link[twdtw]{twdtw}, and `keep_models`, see details.
+#' Any other argument is an error.
 #'
 #' @details The label of a training sample is valid from its start date to its end date.
 #' For each sample, the model uses only the observations of `x` within this time interval,
@@ -45,6 +46,10 @@
 #' years are shifted to the same year before the function is called.
 #' With samples from different years, set `resampling_freq`, so that the temporal patterns of
 #' all labels have observations at the same interval. See the details of \link[twdtw]{twdtw_knn}.
+#'
+#' The model keeps the models returned by `resampling_fun`, which usually contain the time series
+#' of all samples. With `keep_models = FALSE` it keeps only their root mean squared error. This makes
+#' the model much smaller, e.g. to save it to a file, and the land use map is the same.
 #'
 #' The model is created by \link[twdtw]{twdtw_knn} of the package twdtw. This function takes
 #' the time series of the samples from the data cube.
@@ -268,8 +273,9 @@ to_date <- function(x) {
 #' Check the additional arguments of twdtw_knn for a data cube
 #'
 #' The additional arguments are the arguments `origin` and `max_elapsed` of the TWDTW
-#' distance. Any other argument is an error, so that it is not ignored without a message,
-#' for example an argument of a previous version of the package.
+#' distance and `keep_models`, which are passed to twdtw. Any other argument is an error,
+#' so that it is not ignored without a message, for example an argument of a previous
+#' version of the package.
 #'
 #' @param args A list with the additional arguments.
 #'
@@ -284,14 +290,14 @@ check_twdtw_args <- function(args) {
     arg_names <- rep("", length(args))
   }
 
-  unknown <- setdiff(arg_names, c('origin', 'max_elapsed'))
+  unknown <- setdiff(arg_names, c('origin', 'max_elapsed', 'keep_models'))
   if (length(unknown) == 0) {
     return(invisible(NULL))
   }
 
   msg <- paste0("Unknown arguments in twdtw_knn: ",
                 paste(ifelse(unknown == "", "an argument without name", paste0("'", unknown, "'")), collapse = ", "),
-                ". The additional arguments are 'origin' and 'max_elapsed'.")
+                ". The additional arguments are 'origin', 'max_elapsed', and 'keep_models'.")
 
   # Arguments of previous versions
   if (any(c('formula', 'sampling_freq') %in% unknown)) {

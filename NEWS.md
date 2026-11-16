@@ -26,6 +26,8 @@
 
 * `print()` shows the root mean squared error of the models fitted with `resampling_fun`.
 
+* New argument `keep_models`: with `keep_models = FALSE` the model keeps only the root mean squared error of the models fitted with `resampling_fun`, and not the models, which contain the time series of the samples. For the example data, a model with one GAM pattern for each label then takes 22 KB in memory instead of 5.7 MB. The temporal patterns and the land use map are the same.
+
 ## Changes in `predict()`:
 
 * Faster classification: The distances between all time series and all temporal patterns are calculated in a single call to the Fortran routines of the twdtw package. For the example data this is more than 50 times faster, and the land use map is the same.

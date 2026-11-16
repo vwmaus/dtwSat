@@ -59,8 +59,9 @@ observations of the samples, in time order.}
 
 \item{label_column}{Name of the column in y containing land use labels. Default is 'label'.}
 
-\item{...}{Additional arguments of the TWDTW distance: \code{origin} and \code{max_elapsed}.
-Details in \link[twdtw]{twdtw}. Any other argument is an error.}
+\item{...}{Additional arguments of \link[twdtw]{twdtw_knn}: \code{origin} and \code{max_elapsed} of the
+TWDTW distance, see \link[twdtw]{twdtw}, and \code{keep_models}, see details.
+Any other argument is an error.}
 }
 \value{
 A model of class 'twdtw_knn', see \link[twdtw]{twdtw_knn}.
@@ -95,6 +96,10 @@ It returns a model that predicts the values of the temporal pattern, e.g.
 years are shifted to the same year before the function is called.
 With samples from different years, set \code{resampling_freq}, so that the temporal patterns of
 all labels have observations at the same interval. See the details of \link[twdtw]{twdtw_knn}.
+
+The model keeps the models returned by \code{resampling_fun}, which usually contain the time series
+of all samples. With \code{keep_models = FALSE} it keeps only their root mean squared error. This makes
+the model much smaller, e.g. to save it to a file, and the land use map is the same.
 
 The model is created by \link[twdtw]{twdtw_knn} of the package twdtw. This function takes
 the time series of the samples from the data cube.
