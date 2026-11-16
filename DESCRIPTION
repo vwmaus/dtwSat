@@ -22,7 +22,7 @@ Authors@R:
              role = c("ctb"),
              comment = c(ORCID = "0000-0001-6449-0596"))
              )
-Description: Provides a robust approach to land use mapping using multi-dimensional 
+Description: Provides a fast and robust approach to land use mapping using multi-dimensional
     (multi-band) satellite image time series. By leveraging the Time-Weighted Dynamic 
     Time Warping (TWDTW) distance metric in tandem with a k-nearest neighbour (KNN) classifier,
     this package offers functions to produce land use maps based on distinct seasonality patterns, 
@@ -31,6 +31,9 @@ Description: Provides a robust approach to land use mapping using multi-dimensio
     A primary advantage of TWDTW is its capability to handle irregularly sampled and noisy time series, 
     while also requiring minimal training sets. The package includes tools for training the KNN-TWDTW model, 
     visualizing temporal patterns, producing land use maps, and visualizing the results.
+    With one temporal pattern for each land use class, the classification of a data cube has a
+    processing time comparable to that of other machine learning models available in 'R',
+    such as random forest and support vector machines.
 License: GPL (>= 3)
 URL: https://github.com/r-spatial/dtwSat/
 BugReports: https://github.com/r-spatial/dtwSat/issues/
@@ -43,7 +46,7 @@ RoxygenNote: 7.2.3
 Depends:
     twdtw (>= 1.1-0),
     sf,
-    stars (>= 0.6-2),
+    stars (>= 0.7-0),
     ggplot2
 Imports:
     stats

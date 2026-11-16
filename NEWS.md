@@ -50,7 +50,7 @@
 
 * Requires twdtw version 1.1-0 or newer. It has the k-nearest neighbour model, and it fixes a memory error that crashed R in `predict()` when the time series have more observations than the temporal patterns (#63).
 
-* Requires stars version 0.6-2 or newer. The packages tidyr, methods, and utils are no longer imported.
+* Requires stars version 0.7-0 or newer. It is the first version that keeps band names such as `EVI-16` when it passes the time series to `predict()`; earlier versions replaced the hyphen with a period. The packages tidyr, methods, and utils are no longer imported.
 
 * New vignette "2. Accuracy and processing time of TWDTW, DTW, random forest, and SVM", with a spatial cross-validation and the processing time for the example data. It uses the suggested packages dtw, randomForest and e1071.
 

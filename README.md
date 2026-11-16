@@ -12,7 +12,7 @@
 
 <!-- badges: end -->
   
-Provides a robust approach to land use mapping using multi-dimensional 
+Provides a fast and robust approach to land use mapping using multi-dimensional 
 (multi-band) satellite image time series. By leveraging the Time-Weighted Dynamic 
 Time Warping (TWDTW) distance metric in tandem with a k-nearest neighbour (KNN) classifier,
 this package offers functions to produce land use maps based on distinct seasonality patterns, 
@@ -21,6 +21,9 @@ Maus et al. (2016) and Maus et al. (2019).
 A primary advantage of TWDTW is its capability to handle irregularly sampled and noisy time series, 
 while also requiring minimal training sets. The package includes tools for training the KNN-TWDTW model, 
 visualizing temporal patterns, producing land use maps, and visualizing the results.
+With one temporal pattern for each land use class, the classification of a data cube has a 
+processing time comparable to that of other machine learning models available in 'R', 
+such as random forest and support vector machines.
 
 ## Getting Started
 
