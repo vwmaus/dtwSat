@@ -1,5 +1,5 @@
 ---
-title: "1. Land use mapping using TWDTW-1NN and stars"
+title: "1. Land use mapping using TWDTW-KNN and stars"
 author: "Victor Maus"
 output:
   html_document:
@@ -9,7 +9,7 @@ output:
       smooth_scroll: false
     toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{1. Land use mapping using TWDTW-1NN and stars}
+  %\VignetteIndexEntry{1. Land use mapping using TWDTW-KNN and stars}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 bibliography: ./../inst/REFERENCES.bib
@@ -20,7 +20,7 @@ bibliography: ./../inst/REFERENCES.bib
 knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, dev = "png")
 ```
 
-This vignette offers a concise guide for using version 1.0.0 or higher of the `dtwSat` package to generate a land-use map.
+This vignette offers a concise guide for using the `dtwSat` package to generate a land-use map.
 The package utilizes Time-Weighted Dynamic Time Warping (TWDTW) along with a k-nearest neighbour (KNN) classifier, by default with the nearest neighbour.
 The subsequent sections will walk you through the process of creating a land-use map based on a set of training samples 
 and a multi-band satellite image time series.
@@ -78,15 +78,15 @@ print(dc)
 
 Note that it's important to set the date for each observation using the parameter `along`.
 This will produce a 4D array (data-cube) that will be collapsed into a 3D array by converting 
-the 'band' dimension into attributes. This prepares the data for training the TWDTW-1NN model.
+the 'band' dimension into attributes. This prepares the data for training the TWDTW-KNN model.
 
-## Create TWDTW-KNN1 model
+## Creating the TWDTW-KNN Model
 
-There several wayis to buld the TWDTW-1NN model. The default options is to keep all samples as part of the model.
-However, this implies in higher computational time for prediction. To speed the precessing, 
-here I show how to reduce the samples to a single pattern for land use class using 
-Generalized Additive Models (GAM) with cubic regression splines.
-That can be achieved by defining a smoothing function, such as
+There are several ways to build the TWDTW-KNN model. The default option is to keep all samples as part of the model.
+However, this implies a higher computational time for prediction. To speed up the processing,
+here I show how to reduce the samples to a single temporal pattern for each land-use class using
+Generalized Additive Models (GAM).
+That can be achieved by defining a smoothing function with the argument `resampling_fun`, such as
 
 ```{r , echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
 library(mgcv)
@@ -105,8 +105,8 @@ In addition to the mandatory arguments `x` (satellite data-cube) and `y` (traini
 the TWDTW distance calculation also requires setting `cycle_length`, `time_scale`, and `time_weight`.
 For more details, refer to the documentation using `?twdtw`. 
 The model will resample the training set using the defined function, 
-collapsing all samples with the same land-use label into a single sample.
-This reduces computational demands. The sample in the model can be visualized as follows:
+collapsing all samples with the same land-use label into a single temporal pattern.
+This reduces computational demands. The temporal patterns of the model can be visualized as follows:
 
 ```{r , echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
 plot(twdtw_model)
@@ -152,10 +152,10 @@ ggplot() +
 In this call the observation of 2011-11-17 is not used for the nine pixels, 
 and all pixels have a land-use class.
 
-Ultimately, we can write the map to a TIFF file we can use:
+The land-use classes can then be written to a TIFF file:
 
 ```{r , echo = TRUE, eval = FALSE, warning = FALSE, message = FALSE}
-write_stars(lu_map, "lu_map.tif")
+write_stars(lu_map["prediction"], "lu_map.tif")
 ```
 
 ## Further Reading
@@ -163,8 +163,10 @@ write_stars(lu_map, "lu_map.tif")
 This introduction outlined the use of `dtwSat` for land-use mapping. 
 For more in-depth information, refer to the papers by @Maus:2016 and @Maus:2019 and the 
 [`twdtw` R package documentation](https://CRAN.R-project.org/package=twdtw).
+The help page `?predict.twdtw_knn` describes how to classify with more than one nearest neighbour.
+The second vignette compares the accuracy and the processing time of TWDTW with random forest and SVM.
 
-For additional details on how to manage input and output satellite images, 
-[`check` the stars documentation](https://CRAN.R-project.org/package=stars).
+For additional details on how to manage input and output satellite images,
+check the [`stars` documentation](https://CRAN.R-project.org/package=stars).
 
 ## References
