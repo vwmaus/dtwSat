@@ -104,16 +104,16 @@ dim(sample_ts)
 Each method has a function to train a model with the samples given by their row number `id`,
 and a function to classify time series.
 
-For TWDTW we use `twdtw_knn1()` with the arguments of the first vignette, and classify the data-cube with `predict()`.
+For TWDTW we use `twdtw_knn()` with the arguments of the first vignette, and classify the data-cube with `predict()`.
 
 ```{r}
 train_twdtw <- function(id, ...) {
-  twdtw_knn1(x = dc,
-             y = samples[id, ],
-             ...,
-             cycle_length = 'year',
-             time_scale = 'day',
-             time_weight = c(steepness = 0.1, midpoint = 50))
+  twdtw_knn(x = dc,
+            y = samples[id, ],
+            ...,
+            cycle_length = 'year',
+            time_scale = 'day',
+            time_weight = c(steepness = 0.1, midpoint = 50))
 }
 
 train_twdtw_gam <- function(id) {

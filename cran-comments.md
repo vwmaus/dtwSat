@@ -30,6 +30,16 @@ This is a resubmission of an archived package. 'dtwSat' 1.0.0 was archived on
   and `sampling_freq` of `twdtw_knn1()` were replaced by `resampling_fun` and
   `resampling_freq`, and 'mgcv' is now a suggested package.
 
+* The k-nearest neighbour model and its `predict()` method are now in the
+  package 'twdtw' (>= 1.1-0), for any time series. 'dtwSat' adds the methods
+  for data cubes: `twdtw_knn()` takes the time series of the training samples
+  from a 'stars' data cube, and `predict()` returns the land use map.
+  `predict()` can classify with more than one nearest neighbour (argument
+  `k`). The class of the model was therefore renamed from `twdtw_knn1` to
+  `twdtw_knn`. `twdtw_knn1()` is deprecated and calls `twdtw_knn()`, and the
+  methods for the class `twdtw_knn1` remain for models created with version
+  1.0.0.
+
 * Fixes the use of the start and end dates of the training samples and the order
   of the observations of the temporal patterns. NEWS.md lists all changes.
 
@@ -37,7 +47,8 @@ This is a resubmission of an archived package. 'dtwSat' 1.0.0 was archived on
   examples without expectations.
 
 * R CMD check --as-cran on the local test environment: no ERRORs or WARNINGs.
-  There was 1 NOTE, because 'HTML Tidy' is not installed on the local system.
+  There was 1 NOTE, 'New submission' and 'Package was archived on CRAN',
+  because this is a resubmission of an archived package.
 
 ## v1.0.0
 

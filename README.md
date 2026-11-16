@@ -14,12 +14,12 @@
   
 Provides a robust approach to land use mapping using multi-dimensional 
 (multi-band) satellite image time series. By leveraging the Time-Weighted Dynamic 
-Time Warping (TWDTW) distance metric in tandem with a 1 Nearest-Neighbor (1-NN) Classifier,
+Time Warping (TWDTW) distance metric in tandem with a k-nearest neighbour (KNN) classifier,
 this package offers functions to produce land use maps based on distinct seasonality patterns, 
 commonly observed in the phenological cycles of vegetation. The approach is described in 
 Maus et al. (2016) and Maus et al. (2019).
 A primary advantage of TWDTW is its capability to handle irregularly sampled and noisy time series, 
-while also requiring minimal training sets. The package includes tools for training the 1-NN-TWDTW model, 
+while also requiring minimal training sets. The package includes tools for training the KNN-TWDTW model, 
 visualizing temporal patterns, producing land use maps, and visualizing the results.
 
 ## Getting Started

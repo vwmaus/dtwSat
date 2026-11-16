@@ -1,6 +1,10 @@
 # dtwSat v1.0-1
 
-## Changes in `twdtw_knn1()`:
+## The model is created with `twdtw_knn()`:
+
+* `twdtw_knn()` replaces `twdtw_knn1()`. The k-nearest neighbour model and its `predict()` method are now in the twdtw package, for any time series. dtwSat adds the methods for satellite image time series: `twdtw_knn()` takes the time series of the training samples from a data cube, and `predict()` returns the land use map. `twdtw_knn1()` is deprecated: it calls `twdtw_knn()` with the same arguments and gives a message once per session.
+
+* The class of the model is now `twdtw_knn`, because `predict()` is no longer limited to one nearest neighbour. The methods for the class `twdtw_knn1` remain for models created with version 1.0.0.
 
 * New arguments for temporal patterns: The arguments `formula` and `sampling_freq` were replaced by `resampling_fun` and `resampling_freq`. `resampling_fun` is a function that receives a data frame with the time (`x`) and the values of a band (`y`) of the samples of a label and returns a model, for example `function(data) mgcv::gam(y ~ s(x), data = data)`. If `resampling_freq` is not given, the patterns have the dates of the observations of the samples. The package mgcv is now only suggested.
 
@@ -8,7 +12,7 @@
 
 * Data cubes with a single band can be used to train a model and can be classified. Before, `twdtw_knn1()` stopped with "Unrecognized format in" followed by a date (vwmaus/twdtw#7).
 
-* Arguments that `twdtw_knn1()` does not know are an error. Before, they were ignored without a message, for example the arguments `formula` and `sampling_freq` of version 1.0.0.
+* Arguments that `twdtw_knn()` does not know are an error. Before, they were ignored without a message, for example the arguments `formula` and `sampling_freq` of version 1.0.0.
 
 * Start and end dates of the samples: The model uses only the observations of the data cube between the start date and the end date of each training sample. In version 1.0.0 the two columns were required, but had no effect. Samples without observations in this time interval are removed with a warning.
 
@@ -16,15 +20,23 @@
 
 * Samples with the first observation on 31 December of a leap year can be used with a resampling function. Their dates became missing values.
 
+* The band names of a model are the names of the attributes of the data cube. Version 1.0.0 replaced hyphens in the names with periods.
+
 * A data cube without a dimension called `time` gives a clear error message.
 
 * `print()` shows the root mean squared error of the models fitted with `resampling_fun`.
 
 ## Changes in `predict()`:
 
-* Faster classification: The distances between all time series and all temporal patterns are calculated in a single call to `twdtw_knn()` of the twdtw package. For the example data this is more than 50 times faster, and the land use map is the same.
+* Faster classification: The distances between all time series and all temporal patterns are calculated in a single call to the Fortran routines of the twdtw package. For the example data this is more than 50 times faster, and the land use map is the same.
 
-* The land use map has a second attribute, `distance`, with the TWDTW distance of each pixel to the nearest temporal pattern. `predict()` for a `twdtw_knn1` model returns a data frame with the columns `prediction` and `distance`, and no longer a factor.
+* New argument `k`: `predict()` can classify each time series with its `k` nearest temporal patterns. The default is `k = 1`, the nearest pattern, as before. The new argument `vote` sets how the `k` nearest patterns vote for their labels: each pattern has one vote (`"majority"`, the default) or votes with the weight 1/distance (`"weighted"`). A vote can only change the prediction for a model that keeps all samples, i.e. a model without `resampling_fun`.
+
+* New argument `type`: it sets what the map shows. `"class"` (default) gives the label with the most votes and the distance to its nearest pattern, `"prob"` gives the share of the votes of each label, with one attribute for each label, and `"neighbors"` gives the labels and the distances of the `k` nearest patterns without a vote.
+
+* `predict.twdtw_knn1()` will be deprecated in a future release. It is only used for models created with earlier versions, classifies them with `k = 1`, and gives a message once per session.
+
+* The land use map has a second attribute, `distance`, with the TWDTW distance of each pixel to the nearest temporal pattern. `predict()` for a model returns a data frame with the columns `prediction` and `distance`, and no longer a factor.
 
 * Missing values: `predict(model, newdata = cube)` classifies a data cube without `stars::predict()`. An observation with a missing value is not used, and the pixel is classified with its remaining observations. With `predict(cube, model = model)`, stars replaces missing values with zeros and sets the result of all pixels that had a missing value to `NA`.
 
@@ -32,15 +44,17 @@
 
 * The argument `version` of twdtw is no longer used.
 
+* Arguments that `predict()` does not know are an error.
+
 ## Other changes:
 
-* Requires twdtw version 1.1-0 or newer. It fixes a memory error that crashed R in `predict()` when the time series have more observations than the temporal patterns (#63).
+* Requires twdtw version 1.1-0 or newer. It has the k-nearest neighbour model, and it fixes a memory error that crashed R in `predict()` when the time series have more observations than the temporal patterns (#63).
 
-* Requires stars version 0.6-2 or newer and tidyr version 1.3.0 or newer.
+* Requires stars version 0.6-2 or newer. The packages tidyr, methods, and utils are no longer imported.
 
 * New vignette "2. Accuracy and processing time of TWDTW, DTW, random forest, and SVM", with a spatial cross-validation and the processing time for the example data. It uses the suggested packages dtw, randomForest and e1071.
 
-* `shift_dates()` is no longer exported.
+* `shift_dates()` was removed. The dates of the samples are shifted by twdtw when it creates the temporal patterns.
 
 * The package proxy is no longer imported.
 

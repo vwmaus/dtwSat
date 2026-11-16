@@ -21,7 +21,7 @@ knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, dev = "png")
 ```
 
 This vignette offers a concise guide for using version 1.0.0 or higher of the `dtwSat` package to generate a land-use map.
-The package utilizes Time-Weighted Dynamic Time Warping (TWDTW) along with a 1-Nearest Neighbor (1-NN) classifier.
+The package utilizes Time-Weighted Dynamic Time Warping (TWDTW) along with a k-nearest neighbour (KNN) classifier, by default with the nearest neighbour.
 The subsequent sections will walk you through the process of creating a land-use map based on a set of training samples 
 and a multi-band satellite image time series.
 
@@ -91,12 +91,12 @@ That can be achieved by defining a smoothing function, such as
 ```{r , echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
 library(mgcv)
 
-twdtw_model <- twdtw_knn1(x = dc,
-                          y = samples,
-                          resampling_fun = function(data) mgcv::gam(y ~ s(x), data = data),
-                          cycle_length = 'year',
-                          time_scale = 'day',
-                          time_weight = c(steepness = 0.1, midpoint = 50))
+twdtw_model <- twdtw_knn(x = dc,
+                         y = samples,
+                         resampling_fun = function(data) mgcv::gam(y ~ s(x), data = data),
+                         cycle_length = 'year',
+                         time_scale = 'day',
+                         time_weight = c(steepness = 0.1, midpoint = 50))
 
 print(twdtw_model)
 ```
