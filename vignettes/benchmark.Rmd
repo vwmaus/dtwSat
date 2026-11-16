@@ -191,7 +191,5 @@ and takes much longer.
 so the accuracy for another region would be lower for all models.
 - The models are used without tuning of their settings.
 - The processing time was measured once, on the computer that built this vignette.
-- The example has no case in which the time weight of TWDTW is expected to matter,
-such as crops with a similar shape of the time series in different seasons.
 
 ## References
