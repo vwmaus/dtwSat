@@ -5,6 +5,14 @@ example_samples <- function() {
   st_read(system.file("mato_grosso_brazil/samples.gpkg", package = "dtwSat"), quiet = TRUE)
 }
 
+# Dates moved to start on the same day of the year in 1970, keeping the days between
+# them. The dates of each sample are moved in this way before a resampling function
+# creates the temporal patterns
+shifted_dates <- function(dates) {
+  first <- as.Date(paste(1970, format(dates[1], "%j")), format = "%Y %j")
+  dates - as.numeric(dates[1] - first)
+}
+
 # Data cube (x, y, time) with six bands as attributes and 23 images per year.
 # With 'years = 2' the images are repeated in the next year. This gives a data cube
 # that is longer than the time interval of the samples. The images of the next year

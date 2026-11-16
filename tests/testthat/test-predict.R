@@ -3,13 +3,13 @@
 
 # Model with one pattern for each label: the mean of the samples on each date
 example_model <- function(dc, samples, ..., time_weight = c(steepness = 0.1, midpoint = 50)) {
-  twdtw_knn1(x = dc,
-             y = samples,
-             resampling_fun = function(data) lm(y ~ factor(x), data = data),
-             ...,
-             cycle_length = 'year',
-             time_scale = 'day',
-             time_weight = time_weight)
+  twdtw_knn(x = dc,
+            y = samples,
+            resampling_fun = function(data) lm(y ~ factor(x), data = data),
+            ...,
+            cycle_length = 'year',
+            time_scale = 'day',
+            time_weight = time_weight)
 }
 
 # Classify a data cube. The message that is suppressed comes from stars: it first tries
@@ -158,6 +158,14 @@ test_that("the time series must have the bands of the model", {
 
   # No column has a band and a date in its name
   expect_error(predict(m, newdata = newdata[, c("x", "y")]),
-               "newdata has no columns named with a band and a date",
+               "'newdata' has no columns named with a band and a date",
+               fixed = TRUE)
+
+  # A data cube with other bands
+  expect_error(predict(m, newdata = dc[c("EVI", "NDVI")]),
+               "The bands of newdata (EVI, NDVI) are not the bands of the model (EVI, NDVI, RED, BLUE, NIR, MIR)",
+               fixed = TRUE)
+  expect_error(predict(m, newdata = setNames(dc, paste0("B", 1:6))),
+               "The bands of newdata (B1, B2, B3, B4, B5, B6) are not the bands of the model",
                fixed = TRUE)
 })

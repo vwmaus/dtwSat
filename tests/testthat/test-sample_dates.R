@@ -1,11 +1,11 @@
 # The label of a training sample is valid from its start date to its end date.
-# twdtw_knn1() must use only the observations within this time interval.
+# twdtw_knn() must use only the observations within this time interval.
 
 train <- function(...) {
-  twdtw_knn1(...,
-             cycle_length = 'year',
-             time_scale = 'day',
-             time_weight = c(steepness = 0.1, midpoint = 50))
+  twdtw_knn(...,
+            cycle_length = 'year',
+            time_scale = 'day',
+            time_weight = c(steepness = 0.1, midpoint = 50))
 }
 
 observation_dates <- function(model) {

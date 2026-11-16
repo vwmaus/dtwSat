@@ -9,12 +9,12 @@ test_that("the labels are read from the column given in label_column", {
   samples$label <- NULL
 
   train <- function(...) {
-    twdtw_knn1(x = dc,
-               y = samples,
-               ...,
-               cycle_length = 'year',
-               time_scale = 'day',
-               time_weight = c(steepness = 0.1, midpoint = 50))
+    twdtw_knn(x = dc,
+              y = samples,
+              ...,
+              cycle_length = 'year',
+              time_scale = 'day',
+              time_weight = c(steepness = 0.1, midpoint = 50))
   }
 
   m <- train(label_column = "land_use")

@@ -4,12 +4,12 @@
 
 # Model with one pattern for each label: the mean of the samples on each date
 example_model <- function(dc, samples) {
-  twdtw_knn1(x = dc,
-             y = samples,
-             resampling_fun = function(data) lm(y ~ factor(x), data = data),
-             cycle_length = 'year',
-             time_scale = 'day',
-             time_weight = c(steepness = 0.1, midpoint = 50))
+  twdtw_knn(x = dc,
+            y = samples,
+            resampling_fun = function(data) lm(y ~ factor(x), data = data),
+            cycle_length = 'year',
+            time_scale = 'day',
+            time_weight = c(steepness = 0.1, midpoint = 50))
 }
 
 # Distance of a time series to each pattern of a model, calculated with twdtw()

@@ -1,13 +1,13 @@
-# Train TWDTW 1-NN models with the example data and classify the example data cube.
+# Train TWDTW k-nearest neighbour models with the example data and classify the example data cube.
 
 # Train a model with the twdtw arguments used in the examples of the package
 train <- function(x, y, ..., time_weight = c(steepness = 0.1, midpoint = 50)) {
-  twdtw_knn1(x = x,
-             y = y,
-             ...,
-             cycle_length = 'year',
-             time_scale = 'day',
-             time_weight = time_weight)
+  twdtw_knn(x = x,
+            y = y,
+            ...,
+            cycle_length = 'year',
+            time_scale = 'day',
+            time_weight = time_weight)
 }
 
 # Classify a data cube. The message that is suppressed comes from stars: it first tries
@@ -35,7 +35,8 @@ test_that("a model without resampling keeps the time series of each sample", {
 
   m <- train(dc, samples)
 
-  expect_s3_class(m, "twdtw_knn1")
+  # A single class, because stars::predict() fails for a model with more than one class
+  expect_identical(class(m), "twdtw_knn")
   expect_null(m$smooth_models)
   expect_equal(m$data$label, samples$label)
 
@@ -48,7 +49,7 @@ test_that("a model without resampling keeps the time series of each sample", {
   # The summary returns the model
   out <- capture.output(printed <- print(m))
   expect_identical(printed, m)
-  expect_match(out, "Model of class 'twdtw_knn1'", fixed = TRUE, all = FALSE)
+  expect_match(out, "Model of class 'twdtw_knn'", fixed = TRUE, all = FALSE)
 
   # The plot has one line for each sample and band
   p <- plot(m)
@@ -95,7 +96,7 @@ test_that("a resampling function gives one temporal pattern for each label", {
   }
 
   # The patterns have the dates of the images, moved to start in 1970
-  pattern_dates <- shift_dates(st_get_dimension_values(dc, "time"))
+  pattern_dates <- shifted_dates(st_get_dimension_values(dc, "time"))
   for (pattern in m$data$observations) {
     expect_named(pattern, c("time", names(dc)))
     expect_equal(pattern$time, pattern_dates)

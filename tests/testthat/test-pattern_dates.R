@@ -13,12 +13,12 @@ test_that("patterns from samples of different years are in time order", {
   samples$end_date[second_year] <- as.Date("2013-08-31")
 
   train <- function(...) {
-    twdtw_knn1(x = dc,
-               y = samples,
-               ...,
-               cycle_length = 'year',
-               time_scale = 'day',
-               time_weight = c(steepness = 0.1, midpoint = 50))
+    twdtw_knn(x = dc,
+              y = samples,
+              ...,
+              cycle_length = 'year',
+              time_scale = 'day',
+              time_weight = c(steepness = 0.1, midpoint = 50))
   }
 
   # One pattern for each label with the mean of the samples on each date
@@ -31,12 +31,12 @@ test_that("patterns from samples of different years are in time order", {
   }
 
   # The same mean calculated from the samples, with the dates of each sample
-  # moved to start in 1970 as in twdtw_knn1()
+  # moved to start in 1970 as in twdtw_knn()
   m_samples <- train()
   label <- m$data$label[1]
   ts_label <- m_samples$data$observations[m_samples$data$label == label]
   ts_label <- do.call(rbind, lapply(ts_label, function(ts) {
-    data.frame(time = shift_dates(ts$time), EVI = ts$EVI)
+    data.frame(time = shifted_dates(ts$time), EVI = ts$EVI)
   }))
   mean_evi <- tapply(ts_label$EVI, ts_label$time, mean)
 

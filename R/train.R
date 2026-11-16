@@ -1,7 +1,9 @@
+#' Train a TWDTW k-nearest neighbour model with a data cube
 #'
-#' Train a KNN-1 TWDTW model
-#'
-#' This function prepares a KNN-1 model with the Time Warp Dynamic Time Warping (TWDTW) algorithm.
+#' This is the method of \link[twdtw]{twdtw_knn} for satellite image time series. It takes the
+#' time series of the training samples from a data cube and creates a k-nearest neighbour (KNN)
+#' model with the Time-Weighted Dynamic Time Warping (TWDTW) algorithm.
+#' \link[dtwSat:twdtw_knn_predict.stars]{predict} classifies a data cube with the model.
 #'
 #' @param x A three-dimensional stars object (x, y, time) with bands as attributes.
 #' @param y An sf object with the coordinates of the training points.
@@ -9,15 +11,15 @@
 #' See details in \link[twdtw]{twdtw}.
 #' @param cycle_length The length of the cycle, e.g. phenological cycles. Details in \link[twdtw]{twdtw}.
 #' @param time_scale Specifies the time scale for the observations. Details in \link[twdtw]{twdtw}.
-#' @param resampling_fun a function specifying how to create temporal patterns using the samples.
-#' If not defined, it will keep all samples. Note that reducing the samples to patterns can significantly
-#' improve computational time of predictions. The resampling function must receive a single data frame as 
-#' argument an return a model. See details.
+#' @param resampling_fun A function that creates one temporal pattern for each label from all samples
+#' with this label. If `NULL` (default), the model keeps the time series of all samples as temporal
+#' patterns. The function receives a data frame and returns a model. See details.
+#' @param resampling_freq The time between the observations of the temporal patterns created with
+#' `resampling_fun`, e.g. `16` for 16 days. If `NULL` (default), the patterns have the dates of the
+#' observations of the samples, in time order.
 #' @param start_column Name of the column in y with the start date of each training sample. Default is 'start_date'.
 #' @param end_column Name of the column in y with the end date of each training sample. Default is 'end_date'.
 #' @param label_column Name of the column in y containing land use labels. Default is 'label'.
-#' @param resampling_freq The time for sampling the time series if `resampling_fun` is given.
-#' If NULL, the patterns have the dates of the observations of the samples, in time order.
 #' @param ... Additional arguments of the TWDTW distance: `origin` and `max_elapsed`.
 #' Details in \link[twdtw]{twdtw}. Any other argument is an error.
 #'
@@ -26,23 +28,35 @@
 #' including observations on the start and end dates. Samples without observations in their
 #' time interval are removed with a warning.
 #'
-#' If \code{resampling_fun} not informed, the KNN-1 model will retain all training samples.
+#' If `resampling_fun` is `NULL`, the model keeps the time series of all samples.
+#' Such a model has several temporal patterns for each label and can be classified with more
+#' than one nearest neighbour, see the argument `k` of \link[twdtw]{predict.twdtw_knn}.
 #'
-#' If a custom smoothing function is passed to `resampling_fun`, the function will be used to
-#' resample values of samples sharing the same label (land cover class). 
-#'
-#' The custom smoothing function takes a single data frame and returns a model.
-#' The data frame has two named columns:
+#' If `resampling_fun` is a function, the model has one temporal pattern for each label.
+#' This reduces the processing time of the classification, because the TWDTW distance is
+#' calculated to the patterns of the labels and not to the time series of all samples.
+#' The function is called for each label and band with a data frame that has two columns:
 #' \itemize{
-#'   \item `x` is the first column representing the independent variable (typically time).
-#'   \item `y` is the second column representing the dependent variable (e.g., band values) corresponding to each coordinate in `x`.
+#'   \item `x`, the dates of the observations of all samples with this label, as numbers.
+#'   \item `y`, the values of the band on these dates.
 #' }
+#' It returns a model that predicts the values of the temporal pattern, e.g.
+#' `function(data) mgcv::gam(y ~ s(x), data = data)`. The dates of samples from different
+#' years are shifted to the same year before the function is called.
+#' With samples from different years, set `resampling_freq`, so that the temporal patterns of
+#' all labels have observations at the same interval. See the details of \link[twdtw]{twdtw_knn}.
 #'
-#' Smooting the samples can significantly reduce the processing time for prediction using `twdtw_knn1` model.
-#' 
-#' See the examples section for further clarity.
+#' The model is created by \link[twdtw]{twdtw_knn} of the package twdtw. This function takes
+#' the time series of the samples from the data cube.
 #'
-#' @return A 'twdtw_knn1' model containing the trained model information and the data used.
+#' `twdtw_knn1()` is the name of this function in earlier versions of the package. It is
+#' deprecated: it calls `twdtw_knn()` with the same arguments and gives a message once per session.
+#'
+#' @return A model of class 'twdtw_knn', see \link[twdtw]{twdtw_knn}.
+#' In earlier versions of the package the class of the model was 'twdtw_knn1'.
+#'
+#' @seealso \link[dtwSat]{twdtw_knn_predict.stars}, \link[dtwSat]{plot.twdtw_knn},
+#' \link[twdtw]{twdtw_knn}, \link[twdtw]{predict.twdtw_knn}
 #'
 #' @examples
 #' \dontrun{
@@ -70,8 +84,8 @@
 #' dc <- st_set_dimensions(dc, 3, c("EVI", "NDVI", "RED", "BLUE", "NIR", "MIR"))
 #' dc <- split(dc, c("band"))
 #'
-#' # Create a knn1-twdtw model
-#' m <- twdtw_knn1(
+#' # Create a model with one temporal pattern for each label
+#' m <- twdtw_knn(
 #'  x = dc,
 #'  y = samples,
 #'  resampling_fun = function(data) mgcv::gam(y ~ s(x), data = data),
@@ -85,31 +99,43 @@
 #' plot(m)
 #'
 #' # Classify satellite images
-#' system.time(lu <- predict(dc, model = m))
+#' system.time(lu <- predict(m, newdata = dc))
 #'
 #' # Visualise land use classification
 #' ggplot() +
-#'   geom_stars(data = lu) +
+#'   geom_stars(data = lu["prediction"]) +
 #'   theme_minimal()
 #'
-#'
-#' # Create a knn1-twdtw model with custom smoothing function
-#'
-#' m <- twdtw_knn1(x = dc,
+#' # Create a model with a custom resampling function:
+#' # the mean of the samples on each date
+#' m <- twdtw_knn(x = dc,
 #'  y = samples,
 #'  resampling_fun = function(data) lm(y ~ factor(x), data = data),
 #'  cycle_length = 'year',
 #'  time_scale = 'day',
 #'  time_weight = c(steepness = 0.1, midpoint = 50))
-#' 
+#'
 #' plot(m)
+#'
+#' # Create a model that keeps the time series of all samples
+#' # and classify with the three nearest samples
+#' m <- twdtw_knn(x = dc,
+#'  y = samples,
+#'  cycle_length = 'year',
+#'  time_scale = 'day',
+#'  time_weight = c(steepness = 0.1, midpoint = 50))
+#'
+#' lu <- predict(m, newdata = dc, k = 3)
+#'
+#' # The share of the votes of each label among the three nearest samples
+#' lu_share <- predict(m, newdata = dc, k = 3, type = "prob")
 #'
 #' }
 #' @export
-twdtw_knn1 <- function(x, y, resampling_fun = NULL, resampling_freq = NULL,
-                       time_weight, cycle_length, time_scale,
-                       start_column = 'start_date', end_column = 'end_date',
-                       label_column = 'label', ...){
+twdtw_knn.stars <- function(x, y, time_weight, cycle_length, time_scale,
+                            resampling_fun = NULL, resampling_freq = NULL,
+                            start_column = 'start_date', end_column = 'end_date',
+                            label_column = 'label', ...) {
 
   # Check if x is a stars object with a time dimension
   if (!inherits(x, "stars") || length(dim(x)) != 3 || !'time' %in% names(dim(x))) {
@@ -119,24 +145,10 @@ twdtw_knn1 <- function(x, y, resampling_fun = NULL, resampling_freq = NULL,
   # Arguments that this function does not know are not ignored
   check_twdtw_args(list(...))
 
-  # A data cube with a single band has only the date in the names of its time series,
-  # so the name of the band is taken from the data cube
-  single_band <- NULL
-  if (length(x) == 1) {
-    single_band <- normalize_band_names(names(x))
-  }
-
-  x <- split(x, c("time"))
-
   # Check if y is an sf object with point geometry
   if (!inherits(y, "sf") || !all(st_is(y, "POINT"))) {
     stop("y must be an sf object with point geometry")
   }
-
-  # check for minimum set of twdtw arguments
-  if (!(is.function(time_weight) || (is.numeric(time_weight) && length(time_weight) == 2))) stop("'time_weight' should be either a function or a numeric vector with length two")
-  if (is.null(cycle_length)) stop("The 'cycle_length' argument is missing.")
-  if (is.null(time_scale)) stop("The 'time_scale' argument is missing for 'cycle_length' type character.")
 
   # Check for required columns in y
   required_columns <- c(start_column, end_column, label_column)
@@ -145,238 +157,87 @@ twdtw_knn1 <- function(x, y, resampling_fun = NULL, resampling_freq = NULL,
     stop(paste("Missing required columns in y:", paste(missing_columns, collapse = ", ")))
   }
 
-  # adjust y column names
-  st_geometry(y) <- 'geom'
-  y <- y[, c(start_column, end_column, label_column, 'geom')]
-
-  # Convert columns to date-time
-  y[, start_column] <- to_date_time(y[[start_column]])
-  y[, end_column] <- to_date_time(y[[end_column]])
-
   # Time interval in which the label of each sample is valid
-  start_date <- to_date(y[[start_column]])
-  end_date <- to_date(y[[end_column]])
+  start_date <- to_date(to_date_time(y[[start_column]]))
+  end_date <- to_date(to_date_time(y[[end_column]]))
   if (anyNA(start_date) || anyNA(end_date)) {
     stop(paste0("The columns '", start_column, "' and '", end_column, "' of y cannot have missing values"))
   }
 
-  # Prepare time series samples from stars object
-  ts_data <- st_extract(x, y)
-  ts_data$label <- y[[label_column]]
-  ts_data <- prepare_time_series(as.data.frame(ts_data), single_band = single_band)
+  # Time series of the samples, with all dates of the data cube
+  ts_data <- sample_array(x, y)
 
-  # Keep only the observations within the time interval of each sample
-  ts_data$observations <- lapply(seq_len(nrow(ts_data)), function(i) {
-    ts <- ts_data$observations[[i]]
-    id <- ts_data$ts_id[i]
-    ts[ts$time >= start_date[id] & ts$time <= end_date[id], ]
-  })
-  ts_data$ts_id <- NULL
+  # A sample needs an observation without missing values in its time interval
+  ts_day <- as.numeric(ts_data$time)
+  in_interval <- outer(as.numeric(start_date), ts_day, `<=`) & outer(as.numeric(end_date), ts_day, `>=`)
+  is_complete <- rowSums(is.na(ts_data$values), dims = 2) == 0
+  has_observations <- rowSums(in_interval & is_complete) > 0
 
-  # Remove samples without observations in their time interval
-  has_observations <- vapply(ts_data$observations, nrow, integer(1)) > 0
   if (!any(has_observations)) {
     stop("No sample in y has observations in x between its start and end dates")
   }
+
   if (!all(has_observations)) {
     warning(paste0("Samples without observations in x between their start and end dates were removed: ",
                    sum(!has_observations), " of ", length(has_observations)))
-    ts_data <- ts_data[has_observations, ]
   }
 
-  smooth_models <- NULL
-  if(!is.null(resampling_fun)) {
+  # Create the model with the time series of the samples in their time intervals
+  model <- twdtw_knn(x = ts_data$values[has_observations, , , drop = FALSE],
+                     y = y[[label_column]][has_observations],
+                     time_weight = time_weight,
+                     cycle_length = cycle_length,
+                     time_scale = time_scale,
+                     resampling_fun = resampling_fun,
+                     resampling_freq = resampling_freq,
+                     start = start_date[has_observations],
+                     end = end_date[has_observations],
+                     time = ts_data$time,
+                     ...)
 
-    # Shift dates
-    ts_data$observations <- lapply(ts_data$observations, shift_ts_dates)
-
-    # Split data frame by label
-    ts_data <- unnest(ts_data, cols = 'observations')
-    ts_data <- nest(ts_data, .by = 'label', .key = "observations")
-
-    # Apply smooth function
-    smooth_models <- lapply(ts_data$observations, function(ts) {
-
-      # Get timeline
-      y_time <- ts$time
-      ts$time <- NULL
-
-      # Fit smooth model to each band
-      smooth_models <- lapply(as.list(ts), function(band) {
-        resampling_fun(data.frame(x = as.numeric(y_time), y = band))
-      })
-
-      return(smooth_models)
-
-    })
-
-    names(smooth_models) <- ts_data$label
-
-    ts_data$observations <- lapply(seq_along(ts_data$observations), function(l) {
-
-      # Get timeline
-      ts <- ts_data$observations[[l]]
-      y_time <- ts$time
-      ts$time <- NULL
-
-      # Determine time for resampling time sereis
-      if (is.null(resampling_freq)) {
-        # Dates of the observations of all samples with this label, in time order
-        pred_time <- sort(unique(y_time))
-      } else {
-        pred_time <- seq(min(y_time), max(y_time), by = resampling_freq)
-      }
-
-      smoothed_data <- sapply(smooth_models[[l]], function(m) {
-        # Determine target class
-        target_class <- class(model.frame(m)[, 2])
-        # Convert pred_time based on target class
-        pred_points <- if (target_class == "factor") {
-          factor(as.numeric(pred_time), levels = levels(model.frame(m)[, 2]))
-        } else {
-          as(as.numeric(pred_time), target_class)
-        }
-        predict(m, newdata = data.frame(x = pred_points))
-      })
-
-      # Bind time and smoothed data into a data frame
-      result_df <- data.frame(time = pred_time, smoothed_data)
-
-      return(result_df)
-    })
-
-  }
-
-  model <- list()
+  # The call of this function, and not the call with the time series
   model$call <- match.call()
-  model$smooth_models <- smooth_models
-  model$data <- ts_data
-  # add twdtw arguments to model
-  model$twdtw_args <- list(time_weight = time_weight,
-                           cycle_length = cycle_length,
-                           time_scale = time_scale,
-                           origin = NULL,
-                           max_elapsed = Inf)
-  new_twdtw_args <- list(...)
-  matching_twdtw_args <- intersect(names(model$twdtw_args), names(new_twdtw_args))
-  model$twdtw_args[matching_twdtw_args] <- new_twdtw_args[matching_twdtw_args]
-
-  class(model) <- "twdtw_knn1"
+  model$call[[1L]] <- as.name("twdtw_knn")
 
   return(model)
 
 }
 
-#' Print method for objects of class twdtw_knn1
-#'
-#' This method provides a structured printout of the important components
-#' of a `twdtw_knn1` object.
-#'
-#' @param x An object of class `twdtw_knn1`.
-#' @param ... ignored
-#'
-#' @return Invisible `twdtw_knn1` object.
-#'
-#' @export
-print.twdtw_knn1 <- function(x, ...) {
-  cat("\nModel of class 'twdtw_knn1'\n")
-  cat("-----------------------------\n")
 
-  # Printing the call
-  cat("Call:\n")
-  print(x$call)
-
-  # Printing the smooth_fun, if available
-  cat("\nRoot Mean Squared Error (RMSE) of smooth models:\n")
-  if(is.null(x$smooth_models)){
-    print(NULL)
-  } else {
-    print(sapply(x$smooth_models, function(m1) sapply(m1, function(m2){
-      residuals <- try(resid(m2))
-      ifelse(is.numeric(residuals), sqrt(mean(residuals^2)), NA)
-    })))
-  }
-
-  # Printing the data summary
-  cat("\nData:\n")
-  print(x$data)
-
-  # Printing twdtw arguments
-  cat("\nTWDTW Arguments:\n")
-  pretty_arguments(x$twdtw_args)
-
-  invisible(x) # Returns the object invisibly, so it doesn't print twice
-}
-
-#' Print Pretty Arguments
+#' Time Series of the Samples from a stars Data Cube
 #'
-#' Display a list of arguments of a given function in a human-readable format.
+#' This function takes the time series of the pixels at the coordinates of the training samples
+#' from a data cube, as an array with the dimensions sample, time, and band, which is an input
+#' of \link[twdtw]{twdtw_knn}. Missing values remain missing.
 #'
-#' @param args A list of named arguments to display.
+#' @param x A three-dimensional stars object with a 'time' dimension and bands as attributes.
+#' @param y An sf object with the coordinates of the training points.
 #'
-#' @return Invisible NULL. The function is mainly used for its side effect of printing.
-#'
-#' @examples
-#' \dontrun{
-#' pretty_arguments(formals(twdtw_knn1))
-#' }
+#' @return A list with `values`, a numeric array with the dimensions sample, time, and band,
+#' and `time`, the dates of the time dimension of `x`. The band names are the names of the
+#' attributes of `x`.
 #'
 #' @noRd
 #' @keywords internal
-pretty_arguments <- function(args) {
+sample_array <- function(x, y) {
 
-  if (is.null(args)) {
-    cat("Arguments are missing.\n")
-    return(invisible(NULL))
+  # A stars object with the samples and the time as dimensions
+  ts <- st_extract(x, y)
+
+  ts_time <- to_date(st_get_dimension_values(ts, 'time'))
+  ts_bands <- names(ts)
+  time_dim <- which(names(dim(ts)) == 'time')
+
+  values <- array(NA_real_,
+                  dim = c(nrow(y), length(ts_time), length(ts_bands)),
+                  dimnames = list(NULL, NULL, ts_bands))
+
+  for (i in seq_along(ts_bands)) {
+    # Position the time dimension last, so that each row has the time series of a sample
+    values[, , i] <- as.numeric(aperm(unclass(ts[[i]]), c(seq_along(dim(ts))[-time_dim], time_dim)))
   }
 
-  for (name in names(args)) {
-    default_value <- args[[name]]
-
-    if (is.symbol(default_value)) {
-      default_value <- as.character(default_value)
-
-    } else if (is.null(default_value)) {
-      default_value <- "NULL"
-
-    } else if (is.vector(default_value) && !is.null(names(default_value))) {
-      # Handle named vectors
-      values <- paste(names(default_value), default_value, sep = "=", collapse = ", ")
-      default_value <- paste0("c(", values, ")")
-    }
-    cat(paste0(" - ", name, ": ", default_value, "\n"))
-  }
-}
-
-
-
-#' Compute the Most Common Sampling Frequency across all observations
-#'
-#' This function calculates the most common difference between consecutive time points.
-#' This can be useful for determining the aproximate sampling frequency of the time series data.
-#'
-#' @param x A data frame including a column called `observations`` with the time series 
-#'
-#' @return A difftime object representing the most common time difference between consecutive samples.
-#'
-#' @noRd
-#' @keywords internal
-get_time_series_freq <- function(x) {
-
-  # Extract the time dimension
-  time_values <- unlist(lapply(x$observations, function(ts) ts$time))
-
-  # Compute the differences between consecutive time points
-  time_diffs <- unlist(lapply(x$observations, function(ts) diff(ts$time)))
-
-  # Convert differences to days (while retaining the difftime class)
-  time_diffs <- as.difftime(time_diffs, units = "days")
-
-  # Identify the mode
-  mode_val_index <- which.max(tabulate(match(time_diffs, unique(time_diffs))))
-  freq <- diff(time_values[mode_val_index:(mode_val_index+1)])
-
-  return(freq)
+  return(list(values = values, time = ts_time))
 
 }
 
@@ -404,11 +265,11 @@ to_date <- function(x) {
 }
 
 
-#' Check the additional arguments of twdtw_knn1
+#' Check the additional arguments of twdtw_knn for a data cube
 #'
-#' The additional arguments of `twdtw_knn1()` are the arguments `origin` and `max_elapsed`
-#' of the TWDTW distance. Any other argument is an error, so that it is not ignored
-#' without a message, for example an argument of a previous version of the package.
+#' The additional arguments are the arguments `origin` and `max_elapsed` of the TWDTW
+#' distance. Any other argument is an error, so that it is not ignored without a message,
+#' for example an argument of a previous version of the package.
 #'
 #' @param args A list with the additional arguments.
 #'
@@ -428,7 +289,7 @@ check_twdtw_args <- function(args) {
     return(invisible(NULL))
   }
 
-  msg <- paste0("Unknown arguments in twdtw_knn1: ",
+  msg <- paste0("Unknown arguments in twdtw_knn: ",
                 paste(ifelse(unknown == "", "an argument without name", paste0("'", unknown, "'")), collapse = ", "),
                 ". The additional arguments are 'origin' and 'max_elapsed'.")
 
@@ -438,6 +299,9 @@ check_twdtw_args <- function(args) {
   }
   if ('version' %in% unknown) {
     msg <- paste(msg, "'version' is no longer used.")
+  }
+  if (any(c('start', 'end', 'time') %in% unknown)) {
+    msg <- paste(msg, "The dates come from the data cube and from the columns 'start_column' and 'end_column' of y.")
   }
 
   stop(msg)

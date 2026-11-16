@@ -3,12 +3,12 @@
 # (https://github.com/vwmaus/twdtw/issues/7).
 
 train <- function(x, y, ...) {
-  twdtw_knn1(x = x,
-             y = y,
-             ...,
-             cycle_length = 'year',
-             time_scale = 'day',
-             time_weight = c(steepness = 0.1, midpoint = 50))
+  twdtw_knn(x = x,
+            y = y,
+            ...,
+            cycle_length = 'year',
+            time_scale = 'day',
+            time_weight = c(steepness = 0.1, midpoint = 50))
 }
 
 test_that("a model is trained with a data cube that has a single band", {
@@ -73,9 +73,10 @@ test_that("band names with a hyphen give the same map with both ways to classify
   samples <- example_samples()
   mean_fun <- function(data) lm(y ~ factor(x), data = data)
 
-  # Two bands
+  # Two bands. The model has the names of the bands of the data cube
   dc_two <- setNames(dc[c("EVI", "NDVI")], c("EVI-16", "NDVI-16"))
   m <- train(dc_two, samples, resampling_fun = mean_fun)
+  expect_named(m$data$observations[[1]], c("time", "EVI-16", "NDVI-16"))
   dc_part <- dc_two[, 1:6, 1:6, ]
   expect_equal(predict(m, newdata = dc_part), suppressMessages(predict(dc_part, model = m)))
 
@@ -101,6 +102,6 @@ test_that("time series with only the date in their names need a model with a sin
 
   # The model has six bands
   expect_error(predict(m, newdata = newdata),
-               "newdata has no columns named with a band and a date",
+               "'newdata' has no columns named with a band and a date",
                fixed = TRUE)
 })
