@@ -6,7 +6,7 @@
 
 * The class of the model is now `twdtw_knn`, because `predict()` is no longer limited to one nearest neighbour. The methods for the class `twdtw_knn1` remain for models created with version 1.0.0.
 
-* New arguments for temporal patterns: The arguments `formula` and `sampling_freq` were replaced by `resampling_fun` and `resampling_freq`. `resampling_fun` is a function that receives a data frame with the time (`x`) and the values of a band (`y`) of the samples of a label and returns a model, for example `function(data) mgcv::gam(y ~ s(x), data = data)`. If `resampling_freq` is not given, the patterns have the dates of the observations of the samples. The package mgcv is now only suggested.
+* New arguments for temporal patterns: The arguments `formula` and `sampling_freq` were replaced by `resampling_fun` and `resampling_freq`. `resampling_fun` is a function that receives a data frame with the time (`x`) and the values of a band (`y`) of the samples of a label and returns a model, for example `function(data) mgcv::gam(y ~ s(x), data = data)`. If `resampling_freq` is not given, the patterns have the dates of the observations of the samples. Version 1.0.0 inferred the frequency from the time series in this case, 16 days for the example data. With `resampling_freq = 16`, this version gives the temporal patterns and the land use map of version 1.0.0 for the example data. The package mgcv is now only suggested.
 
 * The argument `label_colum` is now called `label_column`.
 
@@ -50,7 +50,7 @@
 
 * Requires twdtw version 1.1-0 or newer. It has the k-nearest neighbour model, and it fixes a memory error that crashed R in `predict()` when the time series have more observations than the temporal patterns (#63).
 
-* Requires stars version 0.7-0 or newer. It is the first version that keeps band names such as `EVI-16` when it passes the time series to `predict()`; earlier versions replaced the hyphen with a period. The packages tidyr, methods, and utils are no longer imported.
+* Requires stars version 0.7-0 or newer. It is the first version that keeps band names such as `EVI-16` when it passes the time series to `predict()`; earlier versions replaced the hyphen with a period. The packages tidyr, methods, and utils are no longer imported. The package tibble is now suggested, because `stars::geom_stars()`, which plots the land use map in the vignette and in the examples, needs it.
 
 * New vignette "2. Accuracy and processing time of TWDTW, DTW, random forest, and SVM", with a spatial cross-validation and the processing time for the example data. It uses the suggested packages dtw, randomForest and e1071.
 

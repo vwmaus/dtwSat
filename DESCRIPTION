@@ -55,6 +55,7 @@ Suggests:
     dtw,
     randomForest,
     e1071,
+    tibble,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)
