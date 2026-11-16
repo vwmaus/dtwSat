@@ -52,7 +52,6 @@ Imports:
     stats
 Suggests:
     mgcv,
-    dtw,
     randomForest,
     e1071,
     tibble,

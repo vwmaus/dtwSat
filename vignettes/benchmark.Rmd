@@ -1,5 +1,5 @@
 ---
-title: "2. Accuracy and processing time of TWDTW, DTW, random forest, and SVM"
+title: "2. Accuracy and processing time of TWDTW, random forest, and SVM"
 author: "Victor Maus"
 output:
   html_document:
@@ -9,7 +9,7 @@ output:
       smooth_scroll: false
     toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{2. Accuracy and processing time of TWDTW, DTW, random forest, and SVM}
+  %\VignetteIndexEntry{2. Accuracy and processing time of TWDTW, random forest, and SVM}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 bibliography: ./../inst/REFERENCES.bib
@@ -17,42 +17,26 @@ bibliography: ./../inst/REFERENCES.bib
 
 
 ```{r setup, include=FALSE}
-# The benchmark needs packages that dtwSat only suggests
-benchmark_packages <- c("mgcv", "dtw", "randomForest", "e1071")
-has_packages <- all(vapply(benchmark_packages, requireNamespace, logical(1), quietly = TRUE))
-knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, dev = "png", eval = has_packages,
-                      warning = FALSE, message = FALSE)
+# The comparison needs packages that dtwSat only suggests
+suggested_packages <- c("mgcv", "randomForest", "e1071")
+has_packages <- all(vapply(suggested_packages, requireNamespace, logical(1), quietly = TRUE))
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, eval = has_packages, warning = FALSE, message = FALSE)
 ```
 
 ```{r , echo = FALSE, eval = !has_packages, results = 'asis'}
 cat("**The code of this vignette was not run, because it needs the packages ",
-    paste(benchmark_packages, collapse = ", "), ".**\n", sep = "")
+    paste(suggested_packages, collapse = ", "), ".**\n", sep = "")
 ```
 
-This vignette compares the classifier of `dtwSat` with three other classifiers, using the example data
-that come with the package. It gives an idea of the accuracy and of the processing time of each method,
-and of how the processing time is divided between training and prediction. The methods are:
-
-- **TWDTW, GAM patterns**: Time-Weighted Dynamic Time Warping [@Maus:2016; @Maus:2019] with one temporal pattern
-for each land-use class. The patterns are created with Generalized Additive Models (GAM), as in the vignette
-"1. Land use mapping using TWDTW-1NN and stars".
-- **TWDTW, samples**: TWDTW with all training samples as temporal patterns, i.e. a 1-Nearest Neighbor classifier
-without reduction of the samples.
-- **DTW, GAM patterns**: Dynamic Time Warping without time weight, calculated with the package
-[dtw](https://CRAN.R-project.org/package=dtw), using the same GAM patterns.
-- **Random forest**: the package [randomForest](https://CRAN.R-project.org/package=randomForest),
-with the values of all bands on all dates as predictors.
-- **SVM**: a support vector machine with a radial kernel from the package
-[e1071](https://CRAN.R-project.org/package=e1071), with the same predictors.
-
-TWDTW is used with the arguments of the first vignette, and the other packages with their default settings.
-The example data set is small: 291 training samples of five land-use classes and a data-cube with 999 pixels,
-23 images, and six bands. The results below are therefore an illustration and not an assessment of the methods,
-see the section "Limitations".
+This vignette compares Time-Weighted Dynamic Time Warping (TWDTW) [@Maus:2016; @Maus:2019] with random forest
+and with a support vector machine (SVM), using the example data that come with `dtwSat`.
+It gives an idea of the accuracy and of the processing time of each method. The data set is small,
+so the results are an illustration and not an assessment of the methods.
 
 ## Data
 
 We read the training samples and the satellite image time series as in the first vignette.
+There are 291 samples of five land-use classes, and the data-cube has 999 pixels, 23 images, and six bands.
 
 ```{r}
 library(dtwSat)
@@ -64,296 +48,148 @@ tif_names <- basename(tif_files)
 acquisition_date <- as.Date(regmatches(tif_names, regexpr("[0-9]{8}", tif_names)), format = "%Y%m%d")
 
 dc <- read_stars(tif_files,
-                 proxy = FALSE,
                  along = list(time = acquisition_date),
                  RasterIO = list(bands = 1:6))
 dc <- st_set_dimensions(dc, 3, c("EVI", "NDVI", "RED", "BLUE", "NIR", "MIR"))
 dc <- split(dc, c("band"))
+```
 
+To give all methods the same input, we take the time series out of the data-cube as arrays with the dimensions
+time series, time, and band: one array for the samples and one for all pixels.
+`twdtw_knn()` and `predict()` work with these arrays in the same way as with the data-cube.
+
+```{r}
 bands <- names(dc)
-```
+labels <- samples$label
 
-`dtwSat` works with the data-cube and the samples. The other methods need the time series as arrays or as tables.
-The two functions below get the time series of the samples and of all pixels as an array with the dimensions
-time series, time, and band. For random forest and SVM, each time series becomes one row with the values of all
-bands on all dates.
+sample_cube <- st_extract(dc, samples)
+sample_ts <- sapply(bands, function(band) matrix(sample_cube[[band]], ncol = length(acquisition_date)), simplify = "array")
+pixel_ts <- sapply(bands, function(band) matrix(dc[[band]], ncol = length(acquisition_date)), simplify = "array")
 
-```{r}
-# Time series of the samples: array with the dimensions sample, time, and band
-get_sample_ts <- function(dc, samples) {
-  ts <- st_extract(dc, samples)
-  sapply(bands, function(band) ts[[band]], simplify = "array")
-}
-
-# Time series of all pixels: array with the dimensions pixel, time, and band
-get_pixel_ts <- function(dc) {
-  sapply(bands, function(band) matrix(dc[[band]], ncol = dim(dc)[["time"]]), simplify = "array")
-}
-
-# One row for each time series, with the values of all bands on all dates
-as_features <- function(ts) {
-  matrix(ts, nrow = dim(ts)[1])
-}
-
-sample_ts <- get_sample_ts(dc, samples)
 dim(sample_ts)
+dim(pixel_ts)
 ```
 
-## Methods
+## Models
 
-Each method has a function to train a model with the samples given by their row number `id`,
-and a function to classify time series.
+We compare four models:
 
-For TWDTW we use `twdtw_knn()` with the arguments of the first vignette, and classify the data-cube with `predict()`.
+- **TWDTW, GAM patterns**: one temporal pattern for each land-use class, created with a
+Generalized Additive Model (GAM), as in the first vignette.
+- **TWDTW, all samples**: the time series of all training samples are kept as temporal patterns.
+- **Random forest**: the package [randomForest](https://CRAN.R-project.org/package=randomForest),
+with the values of all bands on all dates as predictors.
+- **SVM**: the package [e1071](https://CRAN.R-project.org/package=e1071), with the same predictors.
+
+TWDTW has the arguments of the first vignette, and the other two packages have their default settings.
+Each model has a function that trains it with the samples `id`, and `classify()` returns the labels
+that a model gives to an array of time series.
 
 ```{r}
-train_twdtw <- function(id, ...) {
-  twdtw_knn(x = dc,
-            y = samples[id, ],
-            ...,
+train_twdtw <- function(id, resampling_fun = NULL) {
+  twdtw_knn(x = sample_ts[id, , ],
+            y = labels[id],
+            time = acquisition_date,
+            resampling_fun = resampling_fun,
             cycle_length = 'year',
             time_scale = 'day',
             time_weight = c(steepness = 0.1, midpoint = 50))
 }
 
-train_twdtw_gam <- function(id) {
-  train_twdtw(id, resampling_fun = function(data) mgcv::gam(y ~ s(x), data = data))
-}
+# One row for each time series, with the values of all bands on all dates
+predictors <- function(ts) matrix(ts, nrow = dim(ts)[1])
 
-# Label of each pixel of the data-cube
-classify_twdtw <- function(model) {
-  as.character(as.vector(predict(model, newdata = dc)$prediction))
-}
-```
+train <- list(
+  "TWDTW, GAM patterns" = function(id) train_twdtw(id, function(data) mgcv::gam(y ~ s(x), data = data)),
+  "TWDTW, all samples"  = function(id) train_twdtw(id),
+  "Random forest"       = function(id) randomForest::randomForest(predictors(sample_ts[id, , ]), factor(labels[id])),
+  "SVM"                 = function(id) e1071::svm(predictors(sample_ts[id, , ]), factor(labels[id])))
 
-For DTW we take the GAM patterns from the model above and calculate the distance between each time series and each
-pattern with `dtw::dtw()`, using its default settings. As TWDTW, it gives a time series the label of the nearest pattern.
-
-```{r}
-classify_dtw <- function(model, ts) {
-  patterns <- lapply(model$data$observations, function(pattern) as.matrix(as.data.frame(pattern)[bands]))
-  nearest <- apply(ts, 1, function(x) {
-    # Observations with missing values are not used
-    x <- x[complete.cases(x), , drop = FALSE]
-    which.min(vapply(patterns, function(pattern) {
-      dtw::dtw(x, pattern, distance.only = TRUE)$distance
-    }, numeric(1)))
-  })
-  model$data$label[nearest]
-}
-```
-
-Random forest and SVM are trained with the table of predictors. They cannot classify a time series with missing values,
-so these time series have no label.
-
-```{r}
-train_rf <- function(id, ts) {
-  randomForest::randomForest(x = as_features(ts), y = factor(samples$label[id]))
-}
-
-train_svm <- function(id, ts) {
-  e1071::svm(x = as_features(ts), y = factor(samples$label[id]))
-}
-
-classify_features <- function(model, ts) {
-  features <- as_features(ts)
-  complete <- complete.cases(features)
-  labels <- rep(NA_character_, nrow(features))
-  labels[complete] <- as.character(predict(model, features[complete, , drop = FALSE]))
-  labels
+classify <- function(model, ts) {
+  if (inherits(model, "twdtw_knn")) {
+    predict(model, newdata = ts, time = acquisition_date)$prediction
+  } else {
+    predict(model, predictors(ts))
+  }
 }
 ```
 
 ## Accuracy
 
-We assess the accuracy with a 5-fold cross-validation. The samples are divided into five groups, the folds.
-Each fold is used once to test a model that was trained with the samples of the other four folds.
-The accuracy is the proportion of test samples that get the correct label.
-
-The samples of this data set are pixels of a few fields, and a pixel is similar to its neighbours in the same field.
-If the folds are formed at random, most test samples are next to a training sample of the same field,
-and the accuracy is too optimistic. We therefore use spatial folds: the samples of each land-use class are divided
-into five groups of neighbouring samples, using k-means clustering of their coordinates. The folds are formed
-within each class, because most classes are in one part of the area only. Spatial folds that ignore the classes
-would leave whole classes without training samples.
+We assess the accuracy with a 5-fold cross-validation: the samples are divided into five groups, and each group
+is used once to test a model that was trained with the other four groups. The samples are pixels of a few fields,
+and a pixel is similar to its neighbours. With random groups, most test samples would be next to a training sample
+of the same field, and the accuracy would be too optimistic. We therefore divide the samples of each land-use class
+into five groups of neighbouring samples, using k-means clustering of their coordinates.
 
 ```{r}
 set.seed(1)
 
-n_folds <- 5
-xy <- st_coordinates(samples)
-
-spatial_fold <- integer(nrow(samples))
-for (label in unique(samples$label)) {
-  id <- which(samples$label == label)
-  spatial_fold[id] <- kmeans(xy[id, ], centers = n_folds, nstart = 20)$cluster
+group <- integer(nrow(samples))
+for (label in unique(labels)) {
+  id <- which(labels == label)
+  group[id] <- kmeans(st_coordinates(samples)[id, ], centers = 5, nstart = 20)$cluster
 }
 
-table(samples$label, spatial_fold)
-```
-
-```{r , fig.width = 7, fig.height = 4.5, fig.align = 'center'}
-samples_fold <- samples
-samples_fold$fold <- factor(spatial_fold)
-
-ggplot(samples_fold) +
-  geom_sf(aes(colour = fold, shape = label), size = 2) +
-  labs(colour = "Spatial fold", shape = "Land use") +
-  theme_minimal()
-```
-
-For comparison we also form random folds within each class.
-
-```{r}
-random_fold <- integer(nrow(samples))
-for (label in unique(samples$label)) {
-  id <- which(samples$label == label)
-  random_fold[id] <- sample(rep_len(seq_len(n_folds), length(id)))
-}
-```
-
-`dtwSat` classifies the whole data-cube, so for TWDTW we need the pixel of each sample to get its label from the map.
-
-```{r}
-pixel_id <- dc["EVI"][, , , 1, drop = TRUE]
-pixel_id[[1]][] <- seq_along(pixel_id[[1]])
-sample_pixel <- st_extract(pixel_id, samples)[[1]]
-```
-
-The first function below returns the labels that each method gives to the test samples,
-and the second function returns the accuracy of each method for each fold.
-
-```{r}
-classify_test_samples <- function(train, test) {
-  twdtw_gam <- train_twdtw_gam(train)
-  twdtw_samples <- train_twdtw(train)
-  rf <- train_rf(train, sample_ts[train, , , drop = FALSE])
-  svm <- train_svm(train, sample_ts[train, , , drop = FALSE])
-  test_ts <- sample_ts[test, , , drop = FALSE]
-
-  data.frame(
-    "TWDTW, GAM patterns" = classify_twdtw(twdtw_gam)[sample_pixel[test]],
-    "TWDTW, samples"      = classify_twdtw(twdtw_samples)[sample_pixel[test]],
-    "DTW, GAM patterns"   = classify_dtw(twdtw_gam, test_ts),
-    "Random forest"       = classify_features(rf, test_ts),
-    "SVM"                 = classify_features(svm, test_ts),
-    check.names = FALSE)
-}
-
-cross_validate <- function(fold) {
-  sapply(seq_len(n_folds), function(k) {
-    test <- which(fold == k)
-    labels <- classify_test_samples(train = which(fold != k), test = test)
-    colMeans(labels == samples$label[test])
+accuracy <- sapply(train, function(train_model) {
+  sapply(1:5, function(k) {
+    model <- train_model(which(group != k))
+    test <- which(group == k)
+    mean(classify(model, sample_ts[test, , ]) == labels[test])
   })
-}
-
-accuracy_spatial <- cross_validate(spatial_fold)
-accuracy_random <- cross_validate(random_fold)
+})
 ```
 
-The table has the accuracy in percent. For the spatial folds it has the mean of the five folds,
-and the lowest and the highest accuracy of a single fold. For the random folds it has the mean.
+The table has the share of test samples with the correct label in percent: the mean of the five groups,
+and the lowest and the highest value of a single group.
 
 ```{r}
-accuracy_table <- data.frame(
-  "Spatial folds, mean" = rowMeans(accuracy_spatial),
-  "Lowest"              = apply(accuracy_spatial, 1, min),
-  "Highest"             = apply(accuracy_spatial, 1, max),
-  "Random folds, mean"  = rowMeans(accuracy_random),
-  check.names = FALSE)
+accuracy_table <- data.frame(Mean = colMeans(accuracy),
+                             Lowest = apply(accuracy, 2, min),
+                             Highest = apply(accuracy, 2, max))
 
 knitr::kable(100 * accuracy_table, digits = 1)
 ```
 
-In this example, the three methods that classify with the individual samples have a lower accuracy with spatial folds
-than with random folds: TWDTW with samples, random forest, and SVM. With random folds they find a training sample
-of the same field next to most test samples. The two methods that use GAM patterns have about the same accuracy
-with both kinds of folds, because a pattern summarises all samples of a class.
-With spatial folds, the differences between the methods are small compared with the differences between the folds.
+All four models classify about 95% of the test samples correctly. The differences between the models are small
+compared with the differences between the groups.
 
 ## Processing time
 
-To measure the processing time, we train each method with all samples and classify the 999 pixels of the data-cube.
-The training time starts with the data-cube and the samples, so for random forest and SVM it includes the time to get
-the time series of the samples. In the same way, the prediction time includes the time to get the time series of the pixels.
-DTW uses the model of TWDTW with GAM patterns, so the two methods have the same training.
+To measure the processing time, we train each model with all samples and classify the time series of the pixels.
+The data-cube has only 999 pixels, so we classify them ten times to get times that can be compared.
+Nine pixels have a missing value in one image. TWDTW classifies such pixels with their remaining observations,
+as shown in the first vignette, but random forest and SVM need a value for each predictor.
+We therefore leave these nine pixels out.
 
 ```{r}
-all_samples <- seq_len(nrow(samples))
+complete <- which(complete.cases(predictors(pixel_ts)))
+many_ts <- pixel_ts[rep(complete, times = 10), , ]
 
-methods <- list(
-  "TWDTW, GAM patterns" = list(train = function() train_twdtw_gam(all_samples),
-                               classify = function(model) classify_twdtw(model)),
-  "TWDTW, samples"      = list(train = function() train_twdtw(all_samples),
-                               classify = function(model) classify_twdtw(model)),
-  "DTW, GAM patterns"   = list(train = function() train_twdtw_gam(all_samples),
-                               classify = function(model) classify_dtw(model, get_pixel_ts(dc))),
-  "Random forest"       = list(train = function() train_rf(all_samples, get_sample_ts(dc, samples)),
-                               classify = function(model) classify_features(model, get_pixel_ts(dc))),
-  "SVM"                 = list(train = function() train_svm(all_samples, get_sample_ts(dc, samples)),
-                               classify = function(model) classify_features(model, get_pixel_ts(dc))))
-
-processing <- do.call(rbind, lapply(names(methods), function(name) {
-  training <- system.time(model <- methods[[name]]$train())[["elapsed"]]
-  prediction <- system.time(labels <- methods[[name]]$classify(model))[["elapsed"]]
-  data.frame(Method = name,
-             Training = training,
-             Prediction = prediction,
-             Total = training + prediction,
-             "Share of prediction" = 100 * prediction / (training + prediction),
-             "Pixels without label" = sum(is.na(labels)),
-             check.names = FALSE)
+processing_time <- t(sapply(train, function(train_model) {
+  training <- system.time(model <- train_model(seq_along(labels)))[["elapsed"]]
+  prediction <- system.time(classify(model, many_ts))[["elapsed"]]
+  c(Training = training, Prediction = prediction, Total = training + prediction)
 }))
+
+knitr::kable(processing_time, digits = 2)
 ```
 
-The table has the time in seconds, the share of the prediction in the total time in percent, and the number of pixels
-that did not get a label.
+The table has the time in seconds. The two TWDTW models use their time in different ways:
 
-```{r}
-knitr::kable(processing, digits = c(0, 2, 2, 2, 0, 0))
-```
-
-```{r , fig.width = 7, fig.height = 3.5, fig.align = 'center'}
-processing_long <- rbind(
-  data.frame(Method = processing$Method, Step = "Training", Seconds = processing$Training),
-  data.frame(Method = processing$Method, Step = "Prediction", Seconds = processing$Prediction))
-processing_long$Method <- factor(processing_long$Method, levels = rev(processing$Method))
-processing_long$Step <- factor(processing_long$Step, levels = c("Training", "Prediction"))
-
-ggplot(processing_long, aes(x = Seconds, y = Method, fill = Step)) +
-  geom_col(position = position_stack(reverse = TRUE)) +
-  labs(x = "Processing time (seconds)", y = NULL, fill = NULL) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-```
-
-The methods divide their time between training and prediction in different ways:
-
-- TWDTW with GAM patterns spends its time in training, because it fits one GAM for each land-use class and band.
-The prediction compares each pixel with only five patterns.
-- TWDTW with samples has almost no training, because the model keeps the time series of the samples.
-The prediction compares each pixel with all 291 samples.
-- DTW has the same training as TWDTW with GAM patterns. Its prediction calls `dtw::dtw()` from R once for each pixel and
-pattern, which takes most of its time. This says more about how the function is called than about the algorithm.
-- Random forest and SVM spend little time in both steps for a data set of this size.
-
-## Missing values
-
-Nine pixels of the data-cube have a missing value in the blue band of the image of 2011-11-17. TWDTW and DTW do not
-need complete time series: they classify these pixels with the remaining 22 observations. Random forest and SVM
-need a value for each predictor. Without filling the missing values before the classification,
-they cannot give these pixels a label, see the last column of the table above.
+- With GAM patterns, most of the time is training, because a GAM is fitted for each land-use class and band.
+The prediction compares each time series with only five patterns, and takes about as long as the prediction of
+random forest and SVM.
+- With all samples, there is almost no training, but the prediction compares each time series with 291 patterns
+and takes much longer.
 
 ## Limitations
 
-- The data set is small and covers one year of a small area. All methods classify most test samples correctly.
-- Spatial folds reduce the similarity between test and training samples, but do not remove it: the folds are parts
-of the same fields. The accuracy for a new region would be lower for all methods.
-- The methods are used without tuning of their settings.
-- The processing time was measured once, on the computer that built this vignette. The times are short and vary
-from run to run and between computers.
-- Cases in which the time weight of TWDTW is expected to matter are not part of this example,
-such as crops with a similar shape of the time series in different seasons, or time series with many missing observations.
+- The data set is small and covers one year of a small area. The five groups are parts of the same fields,
+so the accuracy for another region would be lower for all models.
+- The models are used without tuning of their settings.
+- The processing time was measured once, on the computer that built this vignette.
+- The example has no case in which the time weight of TWDTW is expected to matter,
+such as crops with a similar shape of the time series in different seasons.
 
 ## References
