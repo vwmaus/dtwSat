@@ -35,7 +35,7 @@ so the results are an illustration and not an assessment of the methods.
 
 ## Data
 
-We read the training samples and the satellite image time series as in the first vignette.
+We read the training samples and the satellite image time series as in the [first vignette](landuse-mapping.html).
 There are 291 samples of five land-use classes, and the data-cube has 999 pixels, 23 images, and six bands.
 
 ```{r}
@@ -54,8 +54,10 @@ dc <- st_set_dimensions(dc, 3, c("EVI", "NDVI", "RED", "BLUE", "NIR", "MIR"))
 dc <- split(dc, c("band"))
 ```
 
-To give all methods the same input, we take the time series out of the data-cube as arrays with the dimensions
-time series, time, and band: one array for the samples and one for all pixels.
+To give all methods the same input, we take the time series out of the data-cube as two three-dimensional arrays,
+one for the samples and one for all pixels. The first dimension of an array has the time series, the second
+the 23 dates, and the third the six bands. For example, `sample_ts[1, , ]` is the time series of the first sample,
+with one row for each date and one column for each band.
 `twdtw_knn()` and `predict()` work with these arrays in the same way as with the data-cube.
 
 ```{r}
@@ -75,13 +77,13 @@ dim(pixel_ts)
 We compare four models:
 
 - **TWDTW, GAM patterns**: one temporal pattern for each land-use class, created with a
-Generalized Additive Model (GAM), as in the first vignette.
+Generalized Additive Model (GAM), as in the [first vignette](landuse-mapping.html).
 - **TWDTW, all samples**: the time series of all training samples are kept as temporal patterns.
 - **Random forest**: the package [randomForest](https://CRAN.R-project.org/package=randomForest),
 with the values of all bands on all dates as predictors.
 - **SVM**: the package [e1071](https://CRAN.R-project.org/package=e1071), with the same predictors.
 
-TWDTW has the arguments of the first vignette, and the other two packages have their default settings.
+TWDTW has the arguments of the [first vignette](landuse-mapping.html), and the other two packages have their default settings.
 Each model has a function that trains it with the samples `id`, and `classify()` returns the labels
 that a model gives to an array of time series.
 
@@ -159,7 +161,7 @@ compared with the differences between the groups.
 To measure the processing time, we train each model with all samples and classify the time series of the pixels.
 The data-cube has only 999 pixels, so we classify them ten times to get times that can be compared.
 Nine pixels have a missing value in one image. TWDTW classifies such pixels with their remaining observations,
-as shown in the first vignette, but random forest and SVM need a value for each predictor.
+as shown in the [first vignette](landuse-mapping.html), but random forest and SVM need a value for each predictor.
 We therefore leave these nine pixels out.
 
 ```{r}

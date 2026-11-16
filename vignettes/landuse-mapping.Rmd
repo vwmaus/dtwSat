@@ -164,7 +164,7 @@ This introduction outlined the use of `dtwSat` for land-use mapping.
 For more in-depth information, refer to the papers by @Maus:2016 and @Maus:2019 and the 
 [`twdtw` R package documentation](https://CRAN.R-project.org/package=twdtw).
 The help page `?predict.twdtw_knn` describes how to classify with more than one nearest neighbour.
-The second vignette compares the accuracy and the processing time of TWDTW with random forest and SVM.
+The [second vignette](benchmark.html) compares the accuracy and the processing time of TWDTW with random forest and SVM.
 
 For additional details on how to manage input and output satellite images,
 check the [`stars` documentation](https://CRAN.R-project.org/package=stars).
