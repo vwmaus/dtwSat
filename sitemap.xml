@@ -1,39 +1,16 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>http://r-spatial.github.io/dtwSat/404.html</loc>
-  </url>
-  <url>
-    <loc>http://r-spatial.github.io/dtwSat/LICENSE.html</loc>
-  </url>
-  <url>
-    <loc>http://r-spatial.github.io/dtwSat/articles/index.html</loc>
-  </url>
-  <url>
-    <loc>http://r-spatial.github.io/dtwSat/articles/landuse-mapping.html</loc>
-  </url>
-  <url>
-    <loc>http://r-spatial.github.io/dtwSat/authors.html</loc>
-  </url>
-  <url>
-    <loc>http://r-spatial.github.io/dtwSat/index.html</loc>
-  </url>
-  <url>
-    <loc>http://r-spatial.github.io/dtwSat/news/index.html</loc>
-  </url>
-  <url>
-    <loc>http://r-spatial.github.io/dtwSat/reference/index.html</loc>
-  </url>
-  <url>
-    <loc>http://r-spatial.github.io/dtwSat/reference/plot.twdtw_knn1.html</loc>
-  </url>
-  <url>
-    <loc>http://r-spatial.github.io/dtwSat/reference/predict.twdtw_knn1.html</loc>
-  </url>
-  <url>
-    <loc>http://r-spatial.github.io/dtwSat/reference/print.twdtw_knn1.html</loc>
-  </url>
-  <url>
-    <loc>http://r-spatial.github.io/dtwSat/reference/twdtw_knn1.html</loc>
-  </url>
+<urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
+<url><loc>http://r-spatial.github.io/dtwSat/404.html</loc></url>
+<url><loc>http://r-spatial.github.io/dtwSat/LICENSE.html</loc></url>
+<url><loc>http://r-spatial.github.io/dtwSat/articles/benchmark.html</loc></url>
+<url><loc>http://r-spatial.github.io/dtwSat/articles/index.html</loc></url>
+<url><loc>http://r-spatial.github.io/dtwSat/articles/landuse-mapping.html</loc></url>
+<url><loc>http://r-spatial.github.io/dtwSat/authors.html</loc></url>
+<url><loc>http://r-spatial.github.io/dtwSat/index.html</loc></url>
+<url><loc>http://r-spatial.github.io/dtwSat/news/index.html</loc></url>
+<url><loc>http://r-spatial.github.io/dtwSat/reference/index.html</loc></url>
+<url><loc>http://r-spatial.github.io/dtwSat/reference/plot.twdtw_knn.html</loc></url>
+<url><loc>http://r-spatial.github.io/dtwSat/reference/predict.twdtw_knn1.html</loc></url>
+<url><loc>http://r-spatial.github.io/dtwSat/reference/twdtw_knn.stars.html</loc></url>
+<url><loc>http://r-spatial.github.io/dtwSat/reference/twdtw_knn_predict.stars.html</loc></url>
 </urlset>
+
