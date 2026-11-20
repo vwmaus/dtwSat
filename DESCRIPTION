@@ -52,6 +52,7 @@ Imports:
     stats
 Suggests:
     mgcv,
+    dtw,
     randomForest,
     e1071,
     tibble,
@@ -60,6 +61,7 @@ Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Collate: 
+    'chunks.R'
     'plot.R'
     'predict.R'
     'train.R'

@@ -5,7 +5,9 @@
 #' model with the Time-Weighted Dynamic Time Warping (TWDTW) algorithm.
 #' \link[dtwSat:twdtw_knn_predict.stars]{predict} classifies a data cube with the model.
 #'
-#' @param x A three-dimensional stars object (x, y, time) with bands as attributes.
+#' @param x A three-dimensional stars object (x, y, time) with bands as attributes. It can be a
+#' stars proxy object, i.e. a data cube that is not in memory. Only the rows of the images that
+#' have training samples are then read.
 #' @param y An sf object with the coordinates of the training points.
 #' @param time_weight A numeric vector with length two (steepness and midpoint of logistic weight) or a function.
 #' See details in \link[twdtw]{twdtw}.
@@ -135,6 +137,26 @@
 #' # The share of the votes of each label among the three nearest samples
 #' lu_share <- predict(m, newdata = dc, k = 3, type = "prob")
 #'
+#' # A data cube that does not fit in memory: a stars proxy object, which reads the
+#' # images when their values are needed. The files have seven bands. The first six
+#' # are selected after split(), and not with the argument RasterIO
+#' dc_proxy <- read_stars(tif_files, proxy = TRUE, along = "time")
+#' dc_proxy <- st_set_dimensions(dc_proxy, "time", values = acquisition_date)
+#' dc_proxy <- st_set_dimensions(dc_proxy, "band",
+#'                               values = c("EVI", "NDVI", "RED", "BLUE", "NIR", "MIR", "B7"))
+#' dc_proxy <- split(dc_proxy, c("band"))[1:6]
+#'
+#' # The model reads the rows of the images that have samples
+#' m <- twdtw_knn(x = dc_proxy,
+#'  y = samples,
+#'  resampling_fun = function(data) mgcv::gam(y ~ s(x), data = data),
+#'  cycle_length = 'year',
+#'  time_scale = 'day',
+#'  time_weight = c(steepness = 0.1, midpoint = 50))
+#'
+#' # The images are read and classified in blocks of 10 rows
+#' lu <- predict(m, newdata = dc_proxy, chunk_size = 10)
+#'
 #' }
 #' @export
 twdtw_knn.stars <- function(x, y, time_weight, cycle_length, time_scale,
@@ -142,8 +164,10 @@ twdtw_knn.stars <- function(x, y, time_weight, cycle_length, time_scale,
                             start_column = 'start_date', end_column = 'end_date',
                             label_column = 'label', ...) {
 
-  # Check if x is a stars object with a time dimension
-  if (!inherits(x, "stars") || length(dim(x)) != 3 || !'time' %in% names(dim(x))) {
+  # Check if x is a stars object with a time dimension. A stars proxy object has its
+  # dimensions after the data are read
+  is_proxy <- inherits(x, "stars_proxy")
+  if (!inherits(x, "stars") || (!is_proxy && (length(dim(x)) != 3 || !'time' %in% names(dim(x))))) {
     stop("x must be a three-dimensional stars object with a 'time' dimension")
   }
 
@@ -170,7 +194,7 @@ twdtw_knn.stars <- function(x, y, time_weight, cycle_length, time_scale,
   }
 
   # Time series of the samples, with all dates of the data cube
-  ts_data <- sample_array(x, y)
+  ts_data <- if (is_proxy) sample_array_proxy(x, y) else sample_array(x, y)
 
   # A sample needs an observation without missing values in its time interval
   ts_day <- as.numeric(ts_data$time)
@@ -240,6 +264,72 @@ sample_array <- function(x, y) {
   for (i in seq_along(ts_bands)) {
     # Position the time dimension last, so that each row has the time series of a sample
     values[, , i] <- as.numeric(aperm(unclass(ts[[i]]), c(seq_along(dim(ts))[-time_dim], time_dim)))
+  }
+
+  return(list(values = values, time = ts_time))
+
+}
+
+
+#' Time Series of the Samples from a stars Proxy Object
+#'
+#' This function takes the time series of the training samples from a data cube that is not in
+#' memory. The data cube is read in blocks of rows, and only the blocks that have samples are
+#' read. The result is the result of \code{sample_array} for the data cube in memory.
+#'
+#' @param x A stars proxy object that gives a three-dimensional data cube with a 'time'
+#' dimension and bands as attributes.
+#' @param y An sf object with the coordinates of the training points.
+#' @param rows The number of rows of a block. If `NULL` (default), a block has about 50 million
+#' values.
+#'
+#' @return A list with `values`, a numeric array with the dimensions sample, time, and band,
+#' and `time`, the dates of the time dimension of `x`. Samples outside of the data cube have
+#' missing values.
+#'
+#' @noRd
+#' @keywords internal
+sample_array_proxy <- function(x, y, rows = NULL) {
+
+  if (st_crs(x) != st_crs(y)) {
+    stop("x and y must have the same coordinate reference system")
+  }
+
+  # Row of the data cube with each sample, or NA for a sample outside of the data cube
+  xy <- raster_dims(x)
+  n_row <- dim(x)[[xy[2]]]
+  sample_row <- ceiling(st_cells(x, y) / dim(x)[[xy[1]]])
+
+  blocks <- row_blocks(n_row, chunk_rows(x, n_row, rows))
+  in_block <- lapply(seq_len(nrow(blocks)), function(b) {
+    which(!is.na(sample_row) & sample_row >= blocks[b, 1] & sample_row <= blocks[b, 2])
+  })
+
+  # Without samples in the data cube, the first block gives the dates and the bands
+  with_samples <- which(lengths(in_block) > 0)
+  if (length(with_samples) == 0) {
+    block <- read_rows(x, blocks[1, ])
+    values <- array(NA_real_,
+                    dim = c(nrow(y), dim(block)[['time']], length(block)),
+                    dimnames = list(NULL, NULL, names(block)))
+    return(list(values = values, time = to_date(st_get_dimension_values(block, 'time'))))
+  }
+
+  values <- NULL
+
+  for (b in with_samples) {
+
+    block_ts <- sample_array(read_rows(x, blocks[b, ]), y[in_block[[b]], ])
+
+    if (is.null(values)) {
+      ts_time <- block_ts$time
+      values <- array(NA_real_,
+                      dim = c(nrow(y), dim(block_ts$values)[2:3]),
+                      dimnames = list(NULL, NULL, dimnames(block_ts$values)[[3]]))
+    }
+
+    values[in_block[[b]], , ] <- block_ts$values
+
   }
 
   return(list(values = values, time = ts_time))

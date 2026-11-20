@@ -34,7 +34,9 @@ twdtw_knn1(
 )
 }
 \arguments{
-\item{x}{A three-dimensional stars object (x, y, time) with bands as attributes.}
+\item{x}{A three-dimensional stars object (x, y, time) with bands as attributes. It can be a
+stars proxy object, i.e. a data cube that is not in memory. Only the rows of the images that
+have training samples are then read.}
 
 \item{y}{An sf object with the coordinates of the training points.}
 
@@ -178,6 +180,26 @@ lu <- predict(m, newdata = dc, k = 3)
 
 # The share of the votes of each label among the three nearest samples
 lu_share <- predict(m, newdata = dc, k = 3, type = "prob")
+
+# A data cube that does not fit in memory: a stars proxy object, which reads the
+# images when their values are needed. The files have seven bands. The first six
+# are selected after split(), and not with the argument RasterIO
+dc_proxy <- read_stars(tif_files, proxy = TRUE, along = "time")
+dc_proxy <- st_set_dimensions(dc_proxy, "time", values = acquisition_date)
+dc_proxy <- st_set_dimensions(dc_proxy, "band",
+                              values = c("EVI", "NDVI", "RED", "BLUE", "NIR", "MIR", "B7"))
+dc_proxy <- split(dc_proxy, c("band"))[1:6]
+
+# The model reads the rows of the images that have samples
+m <- twdtw_knn(x = dc_proxy,
+ y = samples,
+ resampling_fun = function(data) mgcv::gam(y ~ s(x), data = data),
+ cycle_length = 'year',
+ time_scale = 'day',
+ time_weight = c(steepness = 0.1, midpoint = 50))
+
+# The images are read and classified in blocks of 10 rows
+lu <- predict(m, newdata = dc_proxy, chunk_size = 10)
 
 }
 }

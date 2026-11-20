@@ -44,6 +44,8 @@
 
 * The spatial dimensions of the data cube can have other names than `x` and `y`.
 
+* Data cubes that do not fit in memory: `predict(model, newdata = cube)` reads and classifies a stars proxy object in blocks of rows and returns the complete map. The new argument `chunk_size` sets the number of rows of a block, and can also be used with a data cube in memory. `twdtw_knn()` reads only the rows of a proxy object that have training samples.
+
 * The argument `version` of twdtw is no longer used.
 
 * Arguments that `predict()` does not know are an error.
@@ -54,7 +56,7 @@
 
 * Requires stars version 0.7-0 or newer. It is the first version that keeps band names such as `EVI-16` when it passes the time series to `predict()`; earlier versions replaced the hyphen with a period. The packages tidyr, methods, and utils are no longer imported. The package tibble is now suggested, because `stars::geom_stars()`, which plots the land use map in the vignette and in the examples, needs it.
 
-* New vignette "2. Accuracy and processing time of TWDTW, random forest, and SVM", with a spatial cross-validation and the processing time for the example data. It uses the suggested packages randomForest and e1071.
+* New vignette "2. Accuracy and processing time of TWDTW, DTW, random forest, and SVM", with a spatial cross-validation and the processing time for the example data. It uses the suggested packages dtw, randomForest and e1071.
 
 * `shift_dates()` was removed. The dates of the samples are shifted by twdtw when it creates the temporal patterns.
 

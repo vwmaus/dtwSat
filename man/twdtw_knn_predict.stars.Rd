@@ -4,10 +4,12 @@
 \alias{twdtw_knn_predict.stars}
 \title{Classify a data cube with a TWDTW k-nearest neighbour model}
 \usage{
-\method{twdtw_knn_predict}{stars}(newdata, object, ...)
+\method{twdtw_knn_predict}{stars}(newdata, object, ..., chunk_size = NULL)
 }
 \arguments{
-\item{newdata}{A three-dimensional stars object (x, y, time) with bands as attributes.}
+\item{newdata}{A three-dimensional stars object (x, y, time) with bands as attributes. It can be
+a stars proxy object, i.e. a data cube that is not in memory, which is read and classified in
+parts. See details.}
 
 \item{object}{A model of class \code{twdtw_knn}, created by \link[dtwSat:twdtw_knn.stars]{twdtw_knn}.}
 
@@ -16,6 +18,11 @@
 \code{"majority"} (default) or \code{"weighted"}; \code{type}, \code{"class"} (default), \code{"prob"}, or \code{"neighbors"};
 and the arguments of the TWDTW distance that replace the arguments of the model:
 \code{time_weight}, \code{cycle_length}, \code{time_scale}, \code{origin}, and \code{max_elapsed}.}
+
+\item{chunk_size}{The number of rows of the data cube that are classified at a time, e.g.
+\code{predict(m, newdata = x, chunk_size = 100)}. If \code{NULL} (default), a data cube in memory is
+classified as a whole, and a stars proxy object in blocks of rows with about 50 million values.
+See details.}
 }
 \value{
 A stars object with the spatial dimensions of \code{newdata}. Its attributes depend on \code{type}:
@@ -62,6 +69,17 @@ pattern for each label, the prediction is the label of the nearest pattern for a
 
 The time series must have the bands of the model, i.e. the attributes of the data cube must
 have the names of the attributes of the data cube that was used to create the model.
+
+A data cube that does not fit in memory can be classified as a stars proxy object, which
+\link[stars]{read_stars} creates with \code{proxy = TRUE} and which reads the images only when their
+values are needed. \code{predict(m, newdata = x)} reads and classifies a proxy object in blocks of
+rows and returns the complete map, which has only a few values for each pixel. \code{chunk_size}
+sets the number of rows of a block. By default a block has about 50 million values, i.e.
+pixels times dates times bands, and its classification needs about one gigabyte of memory.
+A block has at least two rows. The proxy object must be created without the argument
+\code{RasterIO} of \code{read_stars()}, with which stars reads the whole images for each block: select
+the bands after \code{split()}, as in the examples. \code{chunk_size} can also be used with a data cube
+that is in memory, to use less memory during the classification.
 }
 \examples{
 \dontrun{
@@ -134,6 +152,26 @@ lu <- predict(m, newdata = dc, k = 3)
 
 # The share of the votes of each label among the three nearest samples
 lu_share <- predict(m, newdata = dc, k = 3, type = "prob")
+
+# A data cube that does not fit in memory: a stars proxy object, which reads the
+# images when their values are needed. The files have seven bands. The first six
+# are selected after split(), and not with the argument RasterIO
+dc_proxy <- read_stars(tif_files, proxy = TRUE, along = "time")
+dc_proxy <- st_set_dimensions(dc_proxy, "time", values = acquisition_date)
+dc_proxy <- st_set_dimensions(dc_proxy, "band",
+                              values = c("EVI", "NDVI", "RED", "BLUE", "NIR", "MIR", "B7"))
+dc_proxy <- split(dc_proxy, c("band"))[1:6]
+
+# The model reads the rows of the images that have samples
+m <- twdtw_knn(x = dc_proxy,
+ y = samples,
+ resampling_fun = function(data) mgcv::gam(y ~ s(x), data = data),
+ cycle_length = 'year',
+ time_scale = 'day',
+ time_weight = c(steepness = 0.1, midpoint = 50))
+
+# The images are read and classified in blocks of 10 rows
+lu <- predict(m, newdata = dc_proxy, chunk_size = 10)
 
 }
 }
