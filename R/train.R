@@ -49,9 +49,11 @@
 #' With samples from different years, set `resampling_freq`, so that the temporal patterns of
 #' all labels have observations at the same interval. See the details of \link[twdtw]{twdtw_knn}.
 #'
-#' The model keeps the models returned by `resampling_fun`, which usually contain the time series
-#' of all samples. With `keep_models = FALSE` it keeps only their root mean squared error. This makes
-#' the model much smaller, e.g. to save it to a file, and the land use map is the same.
+#' The models returned by `resampling_fun`, one for each label and band, are only used to create
+#' the temporal patterns. The model keeps the patterns and the root mean squared error of each
+#' fitted model, and not the fitted models, which usually contain the time series of all samples.
+#' With `keep_models = TRUE` the fitted models are kept in `smooth_models`, e.g. to plot them. This
+#' makes the model much larger, and the land use map is the same.
 #'
 #' The model is created by \link[twdtw]{twdtw_knn} of the package twdtw. This function takes
 #' the time series of the samples from the data cube.

@@ -86,7 +86,7 @@ test_that("a resampling function gives one temporal pattern for each label", {
   dc <- example_cube()
   samples <- example_samples()
 
-  m <- train(dc, samples, resampling_fun = function(data) mgcv::gam(y ~ s(x), data = data))
+  m <- train(dc, samples, resampling_fun = function(data) mgcv::gam(y ~ s(x), data = data), keep_models = TRUE)
 
   # One pattern for each label, from one fitted model for each band
   expect_equal(sort(m$data$label), sort(unique(samples$label)))

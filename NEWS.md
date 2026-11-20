@@ -26,7 +26,7 @@
 
 * `print()` shows the root mean squared error of the models fitted with `resampling_fun`.
 
-* New argument `keep_models`: with `keep_models = FALSE` the model keeps only the root mean squared error of the models fitted with `resampling_fun`, and not the models, which contain the time series of the samples. For the example data, a model with one GAM pattern for each label then takes 22 KB in memory instead of 5.7 MB. The temporal patterns and the land use map are the same.
+* The model keeps the root mean squared error of the models fitted with `resampling_fun`, and not the fitted models, which contain the time series of the samples. For the example data, a model with one GAM pattern for each label takes 22 KB in memory. With the new argument `keep_models = TRUE` the model also keeps the fitted models in `smooth_models` and takes 5.4 MB. The temporal patterns and the land use map are the same.
 
 ## Changes in `predict()`:
 

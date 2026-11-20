@@ -18,10 +18,10 @@ test_that("the additional arguments of the TWDTW distance are kept in the model"
   expect_equal(m$twdtw_args$max_elapsed, 30)
 })
 
-test_that("keep_models = FALSE keeps the root mean squared error of the models and not the models", {
+test_that("the model keeps the root mean squared error of the fitted models, and the models only with keep_models = TRUE", {
   mean_fun <- function(data) lm(y ~ factor(x), data = data)
-  m <- train(resampling_fun = mean_fun)
-  m_small <- train(resampling_fun = mean_fun, keep_models = FALSE)
+  m <- train(resampling_fun = mean_fun, keep_models = TRUE)
+  m_small <- train(resampling_fun = mean_fun)
 
   # The models of all labels and bands, or only their root mean squared error
   expect_named(m$smooth_models, m$data$label)
@@ -37,10 +37,15 @@ test_that("keep_models = FALSE keeps the root mean squared error of the models a
 
   # The function of earlier versions passes the argument on
   m_knn1 <- suppressMessages(twdtw_knn1(x = example_cube(), y = example_samples(), resampling_fun = mean_fun,
-                                        keep_models = FALSE, cycle_length = 'year', time_scale = 'day',
+                                        keep_models = TRUE, cycle_length = 'year', time_scale = 'day',
                                         time_weight = c(steepness = 0.1, midpoint = 50)))
-  expect_null(m_knn1$smooth_models)
+  expect_named(m_knn1$smooth_models, m$data$label)
   expect_identical(m_knn1$data, m$data)
+
+  # keep_models = FALSE is the default
+  m_false <- train(resampling_fun = mean_fun, keep_models = FALSE)
+  expect_null(m_false$smooth_models)
+  expect_identical(m_false$data, m_small$data)
 
   expect_error(train(resampling_fun = mean_fun, keep_models = NA), "'keep_models' must be TRUE or FALSE", fixed = TRUE)
 })
