@@ -1,18 +1,14 @@
 # Test environments
 
-* win-builder 
-  devtools::check_win_release()
-  devtools::check_win_devel()
-  devtools::check_win_oldrelease()
+* Local Ubuntu 24.04.5 LTS, R 4.6.2
+* GitHub Actions, Ubuntu 26.04.1 LTS, R-devel (2026-11-19 r90939)
+* GitHub Actions, Ubuntu 26.04.1 LTS, R 4.6.2
+* GitHub Actions, Ubuntu 26.04.1 LTS, R 4.5.3
+* GitHub Actions, macOS Tahoe 26.7.2 (arm64), R 4.6.2
+* GitHub Actions, Windows Server 2022, R 4.6.2
 
-* R-hub 
-  rhub::check_for_cran(check_args = '--as-cran')
-  rhub::check_for_cran(check_args = '--as-cran', valgrind = TRUE)
+All environments used 'twdtw' 1.1-0 from CRAN.
 
-* Local Ubuntu 24.04.5 LTS x86_64-pc-linux-gnu (64-bit), R 4.6.2 (2026-10-29)
-  R CMD check --as-cran
-  devtools::submit_cran()
-  
 # REVIEWS
 
 ## v1.0-1
@@ -46,9 +42,15 @@ This is a resubmission of an archived package. 'dtwSat' 1.0.0 was archived on
 * The tests now check the results. The test file of version 1.0.0 ran the
   examples without expectations.
 
-* R CMD check --as-cran on the local test environment: no ERRORs or WARNINGs.
-  There was 1 NOTE, 'New submission' and 'Package was archived on CRAN',
-  because this is a resubmission of an archived package.
+* R CMD check results: there were no ERRORs, WARNINGs, or NOTEs on GitHub
+  Actions. The local check with `--as-cran` returned 1 NOTE, 'New submission'
+  and 'Package was archived on CRAN', because this is a resubmission of an
+  archived package.
+
+* The words KNN, TWDTW, neighbour, phenological, and 'Maus et al.' in the
+  DESCRIPTION are spelled correctly.
+
+* There are no reverse dependencies on CRAN.
 
 ## v1.0.0
 
