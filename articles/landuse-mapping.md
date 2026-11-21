@@ -168,7 +168,7 @@ can be visualized as follows:
 plot(twdtw_model)
 ```
 
-![](landuse-mapping_files/figure-html/unnamed-chunk-5-1.png)
+![](landuse-mapping_files/figure-html/unnamed-chunk-6-1.png)
 
 ## Land Use Prediction
 
@@ -207,7 +207,7 @@ ggplot() +
   theme_minimal()
 ```
 
-![](landuse-mapping_files/figure-html/unnamed-chunk-7-1.png)
+![](landuse-mapping_files/figure-html/unnamed-chunk-8-1.png)
 
 Note that some pixels (in a 3x3 box) in the northeast part of the map
 have `NA` values. These pixels have a missing value in the blue band
@@ -230,7 +230,7 @@ ggplot() +
   theme_minimal()
 ```
 
-![](landuse-mapping_files/figure-html/unnamed-chunk-8-1.png)
+![](landuse-mapping_files/figure-html/unnamed-chunk-9-1.png)
 
 In this call the observation of 2011-11-17 is not used for the nine
 pixels, and all pixels have a land-use class.

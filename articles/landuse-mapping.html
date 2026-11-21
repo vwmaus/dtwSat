@@ -219,7 +219,7 @@ This reduces computational demands. The temporal patterns of the model
 can be visualized as follows:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">twdtw_model</span><span class="op">)</span></span></code></pre></div>
-<p><img src="landuse-mapping_files/figure-html/unnamed-chunk-5-1.png" class="r-plt" alt="" width="700"></p>
+<p><img src="landuse-mapping_files/figure-html/unnamed-chunk-6-1.png" class="r-plt" alt="" width="700"></p>
 </div>
 <div class="section level2">
 <h2 id="land-use-prediction">Land Use Prediction<a class="anchor" aria-label="anchor" href="#land-use-prediction"></a>
@@ -252,7 +252,7 @@ pattern. We can now visualize the land-use classes using
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://r-spatial.github.io/stars/reference/geom_stars.html" class="external-link">geom_stars</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">lu_map</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="landuse-mapping_files/figure-html/unnamed-chunk-7-1.png" class="r-plt" alt="" width="700"></p>
+<p><img src="landuse-mapping_files/figure-html/unnamed-chunk-8-1.png" class="r-plt" alt="" width="700"></p>
 <p>Note that some pixels (in a 3x3 box) in the northeast part of the map
 have <code>NA</code> values. These pixels have a missing value in the
 blue band recorded on 2011-11-17. The call above uses the
@@ -270,7 +270,7 @@ the model:</p>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://r-spatial.github.io/stars/reference/geom_stars.html" class="external-link">geom_stars</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">lu_map</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="landuse-mapping_files/figure-html/unnamed-chunk-8-1.png" class="r-plt" alt="" width="700"></p>
+<p><img src="landuse-mapping_files/figure-html/unnamed-chunk-9-1.png" class="r-plt" alt="" width="700"></p>
 <p>In this call the observation of 2011-11-17 is not used for the nine
 pixels, and all pixels have a land-use class.</p>
 <p>The land-use classes can then be written to a TIFF file:</p>
