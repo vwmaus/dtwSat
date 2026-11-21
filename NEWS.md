@@ -96,7 +96,7 @@
 
 * Fixes error in to - from : non-numeric argument to binary operator in "twdtwAssess"
 
-* Fixes bug in .twdtw fundtion 
+* Fixes bug in .twdtw function 
 
 * Adds function for fast time series classification "twdtw_reduce_time" (~3x faster than twdtwApply)
 
@@ -108,7 +108,7 @@
   
   Fix error in plotAccuracy 
   
-  Generalizes twdwAssess to cases with only one map 
+  Generalizes twdtwAssess to cases with only one map 
   
   Fixes error in getTimeSeries due to time series with only one no observation 
 
@@ -154,7 +154,7 @@
 
 * Update data set names 
 
-  Rename the data sets in ordes to avoid future overwriting of functions and data sets. "example\_ts" replaced with "MOD13Q1.ts". Tthe data sets are now called:
+  Rename the data sets in order to avoid future overwriting of functions and data sets. "example\_ts" replaced with "MOD13Q1.ts". The data sets are now called:
     
     MOD13Q1.MT.yearly.patterns	Data: patterns time series
     MOD13Q1.patterns.list	Data: patterns time series
