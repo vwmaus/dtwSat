@@ -217,7 +217,7 @@ CRAN release: 2020-03-02
 - Fixes error in to - from : non-numeric argument to binary operator in
   “twdtwAssess”
 
-- Fixes bug in .twdtw fundtion
+- Fixes bug in .twdtw function
 
 - Adds function for fast time series classification “twdtw_reduce_time”
   (~3x faster than twdtwApply)
@@ -232,7 +232,7 @@ CRAN release: 2019-01-27
 
   Fix error in plotAccuracy
 
-  Generalizes twdwAssess to cases with only one map
+  Generalizes twdtwAssess to cases with only one map
 
   Fixes error in getTimeSeries due to time series with only one no
   observation
@@ -288,8 +288,8 @@ CRAN release: 2017-03-31
 
 - Update data set names
 
-  Rename the data sets in ordes to avoid future overwriting of functions
-  and data sets. “example_ts” replaced with “MOD13Q1.ts”. Tthe data sets
+  Rename the data sets in order to avoid future overwriting of functions
+  and data sets. “example_ts” replaced with “MOD13Q1.ts”. The data sets
   are now called:
 
   MOD13Q1.MT.yearly.patterns Data: patterns time series

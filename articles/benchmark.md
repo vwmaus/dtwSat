@@ -214,11 +214,11 @@ knitr::kable(processing_time, digits = 2)
 
 |                     | Training | Prediction | Total |
 |:--------------------|---------:|-----------:|------:|
-| TWDTW, GAM patterns |     0.35 |       0.12 |  0.47 |
-| TWDTW, all samples  |     0.01 |       4.63 |  4.64 |
-| DTW, GAM patterns   |     0.33 |      28.06 | 28.39 |
-| Random forest       |     0.37 |       0.29 |  0.66 |
-| SVM                 |     0.02 |       0.23 |  0.26 |
+| TWDTW, GAM patterns |     0.25 |       0.13 |  0.38 |
+| TWDTW, all samples  |     0.01 |       5.00 |  5.01 |
+| DTW, GAM patterns   |     0.25 |      25.85 | 26.09 |
+| Random forest       |     0.38 |       0.27 |  0.65 |
+| SVM                 |     0.02 |       0.24 |  0.27 |
 
 The table has the time in seconds. The models use their time in
 different ways:
