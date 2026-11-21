@@ -17,7 +17,15 @@ bibliography: ./../inst/REFERENCES.bib
 
 
 ```{r setup, include=FALSE}
+# The example needs packages that dtwSat only suggests
+suggested_packages <- c("mgcv", "tibble")
+has_packages <- all(vapply(suggested_packages, requireNamespace, logical(1), quietly = TRUE))
 knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, dev = "png")
+```
+
+```{r , echo = FALSE, eval = !has_packages, results = 'asis'}
+cat("**The code of this vignette was not run, because it needs the packages ",
+    paste(suggested_packages, collapse = ", "), ".**\n", sep = "")
 ```
 
 This vignette offers a concise guide for using the `dtwSat` package to generate a land-use map.
@@ -29,7 +37,7 @@ and a multi-band satellite image time series.
 
 First, let's read a set of training samples that come with the `dtwSat` package installation.
 
-```{r , echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+```{r , echo = TRUE, eval = has_packages, warning = FALSE, message = FALSE}
 library(dtwSat)
 
 samples <- st_read(system.file("mato_grosso_brazil/samples.gpkg", package = "dtwSat"), quiet = TRUE)
@@ -45,7 +53,7 @@ The installation comes with a set of MOD13Q1 images for a region within the Braz
 Note that timing is crucial for the TWDTW distance metric. To create a consistent image time series, 
 we start by extracting the date of acquisition from the MODIS file names [@Didan:2015].
 
-```{r , echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+```{r , echo = TRUE, eval = has_packages, warning = FALSE, message = FALSE}
 tif_files <- dir(system.file("mato_grosso_brazil", package = "dtwSat"), pattern = "\\.tif$", full.names = TRUE)
 
 # use the file names only, the path to the files can contain digits too
@@ -61,7 +69,7 @@ MOD13Q1 is a 16-day composite product, and the date in the file name is the firs
 
 With the files and dates in hand, we can construct a stars satellite image time series for `dtwSat`.
 
-```{r , echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+```{r , echo = TRUE, eval = has_packages, warning = FALSE, message = FALSE}
 # read data-cube
 dc <- read_stars(tif_files,
                  along = list(time = acquisition_date),
@@ -88,7 +96,7 @@ here I show how to reduce the samples to a single temporal pattern for each land
 Generalized Additive Models (GAM).
 That can be achieved by defining a smoothing function with the argument `resampling_fun`, such as
 
-```{r , echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+```{r , echo = TRUE, eval = has_packages, warning = FALSE, message = FALSE}
 library(mgcv)
 
 twdtw_model <- twdtw_knn(x = dc,
@@ -108,7 +116,7 @@ The model will resample the training set using the defined function,
 collapsing all samples with the same land-use label into a single temporal pattern.
 This reduces computational demands. The temporal patterns of the model can be visualized as follows:
 
-```{r , echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+```{r , echo = TRUE, eval = has_packages, warning = FALSE, message = FALSE}
 plot(twdtw_model)
 ```
 
@@ -117,7 +125,7 @@ plot(twdtw_model)
 
 Finally, we predict the land-use classes for each pixel location in the data-cube:
 
-```{r , echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+```{r , echo = TRUE, eval = has_packages, warning = FALSE, message = FALSE}
 lu_map <- predict(dc, model = twdtw_model)
 print(lu_map)
 ```
@@ -126,7 +134,7 @@ The 'time' dimension was reduced to a single map with two attributes: `predictio
 land-use class of each pixel, and `distance` is the TWDTW distance to the nearest temporal pattern.
 We can now visualize the land-use classes using `ggplot`:
 
-```{r , echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+```{r , echo = TRUE, eval = has_packages, warning = FALSE, message = FALSE}
 ggplot() +
   geom_stars(data = lu_map) +
   theme_minimal()
@@ -141,7 +149,7 @@ Therefore, a single missing value is enough for a pixel to have no land-use clas
 TWDTW does not need complete time series. To classify the pixels with missing values using 
 their remaining observations, pass the data-cube to the model:
 
-```{r , echo = TRUE, eval = TRUE, warning = FALSE, message = FALSE}
+```{r , echo = TRUE, eval = has_packages, warning = FALSE, message = FALSE}
 lu_map <- predict(twdtw_model, newdata = dc)
 
 ggplot() +
