@@ -47,8 +47,8 @@ This is a resubmission of an archived package. 'dtwSat' 1.0.0 was archived on
   and 'Package was archived on CRAN', because this is a resubmission of an
   archived package.
 
-* The words KNN, TWDTW, neighbour, phenological, and 'Maus et al.' in the
-  DESCRIPTION are spelled correctly.
+* The words KNN, TWDTW, phenological, and 'Maus et al.' in the DESCRIPTION are
+  spelled correctly.
 
 * There are no reverse dependencies on CRAN.
 
