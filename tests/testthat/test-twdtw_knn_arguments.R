@@ -27,11 +27,14 @@ test_that("the model keeps the root mean squared error of the fitted models, and
   expect_named(m$smooth_models, m$data$label)
   expect_null(m_small$smooth_models)
   expect_identical(dimnames(m$rmse), list(names(example_cube()), m$data$label))
-  expect_identical(m_small$rmse, m$rmse)
+
+  # Each model fits 'mean_fun' again. Two fits of the same data can differ in the last digit, depending
+  # on the linear algebra library (e.g. Intel MKL), so the numbers are compared with a tolerance
+  expect_equal(m_small$rmse, m$rmse)
   expect_lt(as.numeric(object.size(m_small)), as.numeric(object.size(m)) / 10)
 
   # The same temporal patterns and the same map
-  expect_identical(m_small$data, m$data)
+  expect_equal(m_small$data, m$data)
   dc <- example_cube()[, 1:6, 1:5, ]
   expect_equal(predict(m_small, newdata = dc), predict(m, newdata = dc))
 
@@ -40,12 +43,12 @@ test_that("the model keeps the root mean squared error of the fitted models, and
                                         keep_models = TRUE, cycle_length = 'year', time_scale = 'day',
                                         time_weight = c(steepness = 0.1, midpoint = 50)))
   expect_named(m_knn1$smooth_models, m$data$label)
-  expect_identical(m_knn1$data, m$data)
+  expect_equal(m_knn1$data, m$data)
 
   # keep_models = FALSE is the default
   m_false <- train(resampling_fun = mean_fun, keep_models = FALSE)
   expect_null(m_false$smooth_models)
-  expect_identical(m_false$data, m_small$data)
+  expect_equal(m_false$data, m_small$data)
 
   expect_error(train(resampling_fun = mean_fun, keep_models = NA), "'keep_models' must be TRUE or FALSE", fixed = TRUE)
 })
